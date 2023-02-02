@@ -21,19 +21,19 @@ extension Task:MDB_convertible {
 
 public class Scheduler {
 	public static var logger = makeDefaultLogger(label:"lmdb-scheduler")
-	enum Databases:String {
+	internal enum Databases:String {
 		case scheduleTasks = "schedule_task_db"		// [String:Task]
 		case scheduleIntervals = "schedule_interval_db"	// [String:TimeInterval]
 		case scheduleLastFireDate = "schedule_lastfire_db"	// [String:Date]
 	}
 	
-	let env:Environment
+	internal let env:Environment
 	
-	let schedule_task:Database
-	let schedule_timeInterval:Database
-	let schedule_lastFire:Database
+	internal let schedule_task:Database
+	internal let schedule_timeInterval:Database
+	internal let schedule_lastFire:Database
 
-	init(env:Environment, tx someTrans:Transaction) throws {
+	public init(env:Environment, tx someTrans:Transaction) throws {
 		self.env = env
 		self.schedule_task = try env.openDatabase(named:Databases.scheduleTasks.rawValue, flags:[.create], tx:someTrans)
 		self.schedule_timeInterval = try env.openDatabase(named:Databases.scheduleIntervals.rawValue, flags:[.create], tx:someTrans)
@@ -43,9 +43,9 @@ public class Scheduler {
 	
 	// MARK: Scheduling
 	// launching scheduled tasks
-	func launchSchedule(name:String, interval:TimeInterval, _ task:@escaping @Sendable () async -> Void) throws {
+	public func launchSchedule(name:String, interval:TimeInterval, _ task:@escaping @Sendable () async -> Void) throws {
 		try env.transact(readOnly:false) { installTaskTrans in
-			let myPID = getpid()
+//			let myPID = getpid()
 			guard try self.schedule_task.containsEntry(key:name, tx:installTaskTrans) == false else {
 				throw LMDBError.keyExists
 			}
@@ -89,7 +89,7 @@ public class Scheduler {
 	}
 	
 	// canceling scheduled task
-	func cancelSchedule(_ name:String) throws {
+	public func cancelSchedule(_ name:String) throws {
 		try env.transact(readOnly:false) { someTrans in
 			let loadTask = try self.schedule_task.getEntry(type:Task<(), Swift.Error>.self, forKey:name, tx:someTrans)!
 			loadTask.cancel()

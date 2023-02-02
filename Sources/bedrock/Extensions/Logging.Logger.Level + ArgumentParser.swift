@@ -1,7 +1,9 @@
 import ArgumentParser
 import Logging
 
+// Enables log levels to be directly specified and translated from command line arguments
 extension Logging.Logger.Level:ExpressibleByArgument {
+	/// Initialize a Log Level enum from a command line argument
 	public init?(argument:String) {
 		switch argument.lowercased() {
 			case "critical":
@@ -23,5 +25,9 @@ extension Logging.Logger.Level:ExpressibleByArgument {
 		}
 	}
 	
-	public static var allValueStrings = ["critical", "error", "warning", "notice", "info", "debug", "trace"]
+	/// All possible command-line values for this type
+	public static let allValueStrings = ["critical", "error", "warning", "notice", "info", "debug", "trace"]
+	
+	/// Completion values for this type
+	public static let defaultCompletionKind = CompletionKind.list(Self.allValueStrings)
 }
