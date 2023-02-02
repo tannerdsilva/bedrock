@@ -29,10 +29,14 @@ let package = Package(
             dependencies: [
             	"QuickLMDB",
             	.product(name:"ArgumentParser", package:"swift-argument-parser"),
-            	.product(name:"Logging", package:"swift-log")
+            	.product(name:"Logging", package:"swift-log"),
+            	"cbedrock"
             ]),
+        .target(
+        	name: "cbedrock"
+        ),
         .testTarget(
             name: "bedrockTests",
-            dependencies: ["bedrock"]),
+            dependencies: ["bedrock", "cbedrock"]),
     ]
 )
