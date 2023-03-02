@@ -43,8 +43,7 @@ extern lineparser_t lp_init(const uint8_t*_Nullable match, const uint8_t matchle
 }
 
 // send data into the line parser
-extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intake_data, size_t data_len, datahandler dh) {
-	
+extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intake_data, size_t data_len, datahandler_f dh) {
 	if (parser->matchsize > 0) {
 		// resize the parser to fit the data, if necessary
 		while ((parser->occupied + data_len) > parser->buffsize) {
@@ -55,10 +54,15 @@ extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intak
 		memcpy(parser->intakebuff + parser->occupied, intake_data, data_len);
 		parser->occupied = parser->occupied + data_len;
 		
+		// parse the data
 		while (parser->i < parser->occupied) {
+			
 			if (parser->match[parser->matched] == parser->intakebuff[parser->i]) {
+				// if the current byte matches the next byte in the match sequence, increment the match counter
 				parser->matched = parser->matched + 1;
 				if (parser->matchsize == parser->matched) {
+
+					// if the match counter has reached the end of the match sequence, fire the data handler and reset the match counter
 					parser->matched = 0;
 					parser->i = parser->i + 1;
 					dh(parser->intakebuff, parser->i - parser->matchsize);
@@ -67,6 +71,7 @@ extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intak
 					parser->i = parser->i + 1;
 				}
 			} else {
+				// if the current byte does not match the next byte in the match sequence, reset the match counter
 				parser->i = parser->i + 1;
 				parser->matched = 0;
 			}
@@ -77,7 +82,7 @@ extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intak
 }
 
 // close the line parser from memory
-extern void lp_close(lineparser_t*_Nonnull parser, datahandler dh) {
+extern void lp_close(lineparser_t*_Nonnull parser, datahandler_f dh) {
 	if (parser->occupied > 0) {
 		dh(parser->intakebuff, parser->occupied);
 	}
