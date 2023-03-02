@@ -10,7 +10,7 @@ public class ByteParser {
 	/// Initialize a line parser with a specified separator pattern.
 	/// Parameters:
 	/// - separator: The pattern to separate the byte stream by.
-	init<B>(separator:B) throws where B:ContiguousBytes {
+	public init<B>(separator:B) throws where B:ContiguousBytes {
 		self.lineparser = separator.withUnsafeBytes { sepBytes in
 			return lp_init(sepBytes.baseAddress!.bindMemory(to:UInt8.self, capacity:sepBytes.count), UInt8(sepBytes.count))
 		}
@@ -18,7 +18,7 @@ public class ByteParser {
 
 	/// Feed a byte stream into the parser.
 	/// Returns: An array of Data objects, each containing a separated element of the byte stream.
-	func intake<B>(_ data:B) -> [Data] where B:ContiguousBytes {
+	public func intake<B>(_ data:B) -> [Data] where B:ContiguousBytes {
 		data.withUnsafeBytes { dataBytes in
 			var buildLines = [Data]()
 			lp_intake(&self.lineparser, dataBytes.baseAddress!.bindMemory(to:UInt8.self, capacity:dataBytes.count), dataBytes.count, { (data, length) in
@@ -30,7 +30,8 @@ public class ByteParser {
 	}
 
 	/// Finish the parsing and return any remaining data.
-	func finish() -> [Data] {
+	/// Returns: An array of Data objects, each containing a separated element of the byte stream.
+	public func finish() -> [Data] {
 		var buildLines = [Data]()
 		lp_close(&self.lineparser, { (data, length) in
 			let newData = Data(bytes:data, count:length)
