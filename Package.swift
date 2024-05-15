@@ -21,7 +21,8 @@ let package = Package(
     ],
     targets: [
 		.target(name:"bedrock-ipaddress", dependencies: [
-			.product(name:"RAW", package:"rawdog")
+			.product(name:"RAW", package:"rawdog"),
+			.product(name:"QuickLMDB", package:"QuickLMDB")
 		]),
 		// .target("bedrock-date", dependencies: ["RAW"])
         .target(

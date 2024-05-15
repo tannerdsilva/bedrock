@@ -1,6 +1,8 @@
 import RAW
+import QuickLMDB
 
 @RAW_staticbuff(bytes:4)
+@MDB_comparable()
 public struct AddressV4:RAW_comparable_fixed {
 	public init?(_ address:String) {
 		let parts = address.split(separator:".")
