@@ -1,4 +1,5 @@
 import cbedrock
+import RAW
 
 /// returns a ``time_t`` struct representing the reference date for this Date type.
 /// **NOTE**: the reference date is 00:00:00 UTC on 1 January 2001.
@@ -27,12 +28,9 @@ internal let encDate = encodingReferenceDate()
 
 /// a structure that represents a single point of time.
 /// - this structure provides no detail around timezones the date is represented in.
+@RAW_staticbuff(bytes:4)
+@RAW_staticbuff_binaryfloatingpoint_type<Double>()
 @frozen public struct Date:Sendable {
-	
-	/// the primitive value of this instance.
-	/// represents the seconds elapsed since `00:00:00` UTC on 1 January 1970.
-	private let rawVal:Double
-
 	/// initialize a new date based on the GMT timezone.
 	public init() {
 		self = Self(localTime:false)
@@ -60,48 +58,48 @@ internal let encDate = encodingReferenceDate()
 					offset += 3600
 				}
 				
-				self.rawVal = (total_time + offset)
+				self.init(RAW_native:(total_time + offset))
 			case true:
-				self.rawVal = total_time
+				self.init(RAW_native:total_time)
 		}
 	}
 
 	/// initialize with a Unix epoch interval (seconds since 00:00:00 UTC on 1 January 1970)
 	public init(unixInterval:Double) {
-		rawVal = unixInterval
+		self.init(RAW_native:unixInterval)
 	}
 
 	/// basic initializer based on the primitive (seconds since 00:00:00 UTC on 1 January 1970)
 	public init(referenceInterval:Double) {
-		self.rawVal = (referenceInterval + 978307200)
+		self.init(RAW_native:(referenceInterval + 978307200))
 	}
 
 	/// returns the difference in time between the called instance and passed date
 	public func timeIntervalSince(_ other:Self) -> Double {
-		return (self.rawVal - other.rawVal)
+		return self.RAW_native() - other.RAW_native()
 	}
 
 	/// returns a new value that is the sum of the current value and the passed interval
 	public func addingTimeInterval(_ interval:Double) -> Self {
-		return Self(referenceInterval:self.rawVal + interval)
+		return Self(referenceInterval:self.RAW_native() + interval)
 	}
 
 	/// returns the time interval since Unix date
 	public func timeIntervalSinceUnixDate() -> Double {
-		return self.rawVal
+		return self.RAW_native()
 	}
 
 	/// returns the time interval since the reference date (00:00:00 UTC on 1 January 2001)
 	public func timeIntervalSinceReferenceDate() -> Double {
-		return self.rawVal - 978307200
+		return self.RAW_native() - 978307200
 	}
 }
 
 extension Date:Comparable {
 	public static func < (lhs:Date, rhs:Date) -> Bool {
-		return lhs.rawVal < rhs.rawVal
+		return lhs.RAW_native() < rhs.RAW_native()
 	}
 	public static func == (lhs:Date, rhs:Date) -> Bool {
-		return lhs.rawVal == rhs.rawVal
+		return lhs.RAW_native() == rhs.RAW_native()
 	}
 }
