@@ -13,12 +13,15 @@ let package = Package(
     ],
     dependencies: [
         .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", from:"2.1.0"),
-        .package(url:"https://github.com/tannerdsilva/rawdog.git", from:"8.0.0"),
+        .package(url:"https://github.com/tannerdsilva/rawdog.git", from:"8.0.1"),
   		.package(url:"https://github.com/apple/swift-argument-parser.git", from:"1.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", from:"1.0.0"),
   		.package(url:"https://github.com/swift-server/swift-service-lifecycle.git", from:"2.4.0")
     ],
     targets: [
+		.target(name:"bedrock-ipaddress", dependencies: [
+			.product(name:"RAW", package:"rawdog")
+		]),
 		// .target("bedrock-date", dependencies: ["RAW"])
         .target(
             name: "bedrock",
@@ -35,6 +38,6 @@ let package = Package(
         ),
         .testTarget(
             name: "bedrockTests",
-            dependencies: ["bedrock", "cbedrock"]),
+            dependencies: ["bedrock", "cbedrock", "bedrock-ipaddress"]),
     ]
 )
