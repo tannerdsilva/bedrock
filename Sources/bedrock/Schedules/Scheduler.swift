@@ -1,352 +1,251 @@
+import RAW
 import QuickLMDB
 import Logging
-import Foundation
+import struct Foundation.URL
+import ServiceLifecycle
+import cbedrock
 
-/// A Task scheduler that uses LMDB to store and time scheduled tasks.
-/// - Ideally used with a ``QuickLMDB/Environment`` that has a ``QuickLMDB/Environment/Flags/noSync`` flag set, since Scheduler does not need sync to disk every time it writes to the database
-public class Scheduler {
-	/// Defines the exclusivity level a scheduler may have
-	public enum ExclusivityLevel:UInt8 {
-		/// The scheduler will only check for stale PID's that match the currently running PID
-		case pidExclusive = 0
-		/// The scheduler will ensure it is the only instance running for the current user
-		case userExclusive = 1
-		/// The scheduler will ensure it is the only instance running on the current machine
-		/// - NOTE: your process MUST have the ability to signal any process on the machine to ensure this exclusivity level is met
-		case systemExclusive = 2
+@RAW_staticbuff(bytes:4)
+@RAW_staticbuff_fixedwidthinteger_type<pid_t>(bigEndian:true)
+@MDB_comparable()
+fileprivate struct EncodedPID:Equatable {
+	fileprivate static func currentPID() -> EncodedPID {
+		return EncodedPID(RAW_native:getpid())
 	}
+}
 
-	/// Defines the unique errors that can be thrown by the scheduler
-	public enum Error:Swift.Error {
-		/// The specified exclusivity level could not be met
-		case exclusivityRequirementsNotMet
+@RAW_staticbuff(bytes:8)
+@RAW_staticbuff_binaryfloatingpoint_type<Double>()
+@MDB_comparable()
+fileprivate struct EncodedDuration {}
 
-		/// The given PID is already running the scpecified schedule
-		case scheduleAlreadyRunning(pid_t)
+@RAW_staticbuff(bytes:1)
+@RAW_staticbuff_fixedwidthinteger_type<UInt8>(bigEndian:true)
+fileprivate struct EncodedByte {}
+
+@RAW_convertible_string_type<EncodedByte>(UTF8.self)
+@MDB_comparable()
+fileprivate struct EncodedString {}
+
+@RAW_staticbuff(bytes:8)
+@RAW_staticbuff_binaryfloatingpoint_type<Double>()
+@MDB_comparable()
+fileprivate struct EncodedDate:CustomDebugStringConvertible {
+    fileprivate var debugDescription: String {
+		return "\(Date(self).timeIntervalSinceUnixDate())"
 	}
-
-	/// The logger used for this scheduler
-	public static var logger = makeDefaultLogger(label:"lmdb-scheduler")
-	
-	/// The named databases that the Task scheduler uses
-	internal enum Databases:String {
-		// registration related databases
-		case pid_exclusivity_db = "#sched#pid_exclusivity_db"		// [pid_t:ExclusivityLevel]	(no overwrite)
-		case user_pid = "#sched#user_pid_db"						// [String:pid_t]			* DUP *	(no dup data)
-		case pid_user = "#sched#pid_user_db"						// [pid_t:String]			(no overwrite)
-		
-		// task related databases
-		case schedule_pid = "#sched#schedule_pid_db"				// [String:pid_t]			(no overwrite)
-		case pid_schedule = "#sched#pid_schedule-name_db"			// [String:String]			* DUP * (no dup data)
-		case schedule_tasks = "#sched#schedule_task_db"				// [String:Task]			(no overwrite)
-		case schedule_lastFire = "#sched#schedule_lastfire_db"		// [String:Date]			[NEVER DELETE]
+	fileprivate init(_ date:Date) {
+		self = EncodedDate(RAW_native:date.timeIntervalSinceUnixDate())
 	}
-	
-	internal let env:Environment
-	
-	// registration related databases (involving a given process verifying its exclusivity and registering itself with the scheduler)
-	/// the databsae that stores the exclusivity level for a given process
-	internal let pid_exclusivity:Database
-	/// stores the username and pid the running processes with any scheduled tasks
-	internal let user_pid:Database
-	/// stores the username for each pid
-	internal let pid_user:Database
-	
-	// task related databases (involving a given task and its scheduling for a process that has already been registered)
-	// stores the pid for each task
-	internal let schedule_pid:Database
-	/// stores the task name for each pid
-	internal let pid_schedule:Database
-	/// stores the actual Task struct for a given task
-	internal let schedule_task:Database
-	/// stores the last fire date for a given task
-	internal let schedule_lastFire:Database
+	fileprivate func timeIntervalSince(_ date:Date) -> Double {
+		return Date(self).timeIntervalSince(date)
+	}
+	fileprivate func addingTimeInterval(_ interval:Double) -> EncodedDate {
+		return EncodedDate(Date(self).addingTimeInterval(interval))
+	}
+	fileprivate func timeIntervalSinceUnixDate() -> Double {
+		return Date(self).timeIntervalSinceUnixDate()
+	}
+}
 
-	/// initialize a Task scheduler with an ``QuickLMDB/Environment`` and write-enabled Transaction
-	/// - if this is being initialized, the scheduler will assume that it has exclusive rights to manage (add, delete, modify, reschedule) tasks for the currently running user
-	/// - other users with scheduled content in the database will not be affected
-	public init(env:Environment, exclusivity:ExclusivityLevel = .userExclusive, tx someTrans:Transaction) throws {
+fileprivate extension Date {
+	init(_ encoded:EncodedDate) {
+		self.init(unixInterval:encoded.RAW_native())
+	}
+}
 
-#if DEBUG
-		// notify the developer that their process must meet the signal requirements to use the systemExclusive exclusivity level
-		if (exclusivity == .systemExclusive) {
-			Self.logger.notice("The systemExclusive exclusivity level requires that your process be able to signal ANY PROCESS on the machine. If this is not the case, you should use a lower exclusivity level or elevate your process's capabilities.")
+extension Foundation.URL {
+	fileprivate func getFileSize() -> off_t {
+		var statObj = stat()
+		guard stat(self.path, &statObj) == 0 else {
+			return 0
 		}
-#endif
+		return statObj.st_size
+	}
+}
 
-		// capture the current user before opening a transaction
-		let curUser = getCurrentUser()
-		let myPID = getpid()
+public struct Scheduler:Sendable {
+	/// thrown when a recurring task that was scheduled as the current PID unexpectedly gets assigned to a different PID.
+	/// - note: this should never occur but this error still exists in place of throwing a fatalError.
+	public struct UnexpectedTaskRescheduleError:Swift.Error {}
 
-		// open a subtransaction
-		let subTrans = try Transaction(env, readOnly:false, parent:someTrans)
-		self.env = env
+	fileprivate enum Databases:String {
+		case scheduleTasks = "schedule_task_db"
+		case scheduleIntervals = "schedule_interval_db"
+		case scheduleLastFireDate = "schedule_last_fire_date_db"
+	}
 
-		// open the databases related to registration
-		self.pid_exclusivity = try env.openDatabase(named:Databases.user_pid.rawValue, flags:[.create], tx:subTrans)
-		self.user_pid = try env.openDatabase(named:Databases.user_pid.rawValue, flags:[.create, .dupSort], tx:subTrans)
-		self.pid_user = try env.openDatabase(named:Databases.pid_user.rawValue, flags:[.create], tx:subTrans)
-		
-		// open the databases related to active tasks
-		self.schedule_pid = try env.openDatabase(named:Databases.schedule_pid.rawValue, flags:[.create], tx:subTrans)
-		self.pid_schedule = try env.openDatabase(named:Databases.pid_schedule.rawValue, flags:[.create, .dupSort], tx:subTrans)
-		self.schedule_task = try env.openDatabase(named:Databases.schedule_tasks.rawValue, flags:[.create], tx:subTrans)
-		self.schedule_lastFire = try env.openDatabase(named:Databases.schedule_lastFire.rawValue, flags:[.create], tx:subTrans)
-		
-		switch exclusivity {
-			case .pidExclusive:
-				// verify that the exact PID does not have any existing entries in the database
-				let pid_cursor = try pid_exclusivity.cursor(tx:subTrans)
-				let pidu_cursor = try pid_user.cursor(tx:subTrans)
+	private let log:Logger?
 
-				// scan all the pid entries in the database
-				for (curPIDVal, curExcVal) in pid_cursor {
-					let curPID = pid_t(curPIDVal)!
-					let curExclusivity = ExclusivityLevel(curExcVal)!
+	public let env:Environment
 
-					if (curExclusivity.rawValue > exclusivity.rawValue) {
-						// the current PID has a higher exclusivity level than the one we're trying to register
-						// we need to check if the PID is running
-						let checkPID = kill(curPID, 0)
-						if (checkPID == 0) {
-							// the PID is running, so we can't register our process
-							Self.logger.error("unable to initialize new instance. exclusivity requirements could not be met.", metadata: [
-								"exclusivity": "\(exclusivity)",
-								"currentPID": "\(myPID)",
-								"currentUserID": "\(curUser)",
-								"conflictingPID": "\(curPID)",
-								"killResult": "\(checkPID)"
-							])
-							throw Error.exclusivityRequirementsNotMet
-						} else {
-							// the PID is not running, so we can remove it from the database
-							let curUser = try pidu_cursor.getEntry(.set, key:curPIDVal).value
-							try self.user_pid.deleteEntry(key:curUser, tx:subTrans)
-							try pidu_cursor.deleteEntry()
-							try pid_cursor.deleteEntry()
+	fileprivate let schedule_pid:Database.Strict<EncodedString, EncodedPID>
+	fileprivate let schedule_timeInterval:Database.Strict<EncodedString, EncodedDuration>
+	fileprivate let schedule_lastFireDate:Database.Strict<EncodedString, EncodedDate>
 
-							// we must also remove any scheduled tasks for this PID
-							do {
-								let sched_cursor = try pid_schedule.cursor(tx:subTrans)
-								for (_, curSchedVal) in try sched_cursor.makeDupIterator(key: curPID) {
-									try schedule_task.deleteEntry(key:curSchedVal, tx:subTrans)
-									try schedule_pid.deleteEntry(key:curSchedVal, tx:subTrans)
-									try sched_cursor.deleteEntry()
-								}
-							} catch LMDBError.notFound {}
-						}
-					}
-				}
-				// validation passed. document this process in the database
-				try pid_exclusivity.setEntry(value:exclusivity, forKey:myPID, flags:[.noOverwrite], tx:subTrans)
-				try user_pid.setEntry(value:myPID, forKey:curUser, flags:[.noDupData], tx:subTrans)
-				try pid_user.setEntry(value:curUser, forKey:myPID, flags:[.noOverwrite], tx:subTrans)
+	public init(base:URL, log:Logger?) throws {
+		let dbFileName = "task-scheduler.mdb"
+		let targetURL = base.appendingPathComponent(dbFileName, isDirectory:false)
+		let envSize = size_t(targetURL.getFileSize()) + size_t(1.28e6)
+		let makeEnv = try Environment(path:targetURL.path, flags:[.noSubDir, .noReadAhead], mapSize:envSize, maxReaders:32, maxDBs:3, mode:[.ownerReadWriteExecute, .groupRead, .groupExecute])
+		let someTrans = try Transaction(env:makeEnv, readOnly:false)
+		let pidDB = try Database.Strict<EncodedString, EncodedPID>(env:makeEnv, name:Databases.scheduleTasks.rawValue, flags:[.create], tx:someTrans)
+		let intervalDB = try Database.Strict<EncodedString, EncodedDuration>(env:makeEnv, name:Databases.scheduleIntervals.rawValue, flags:[.create], tx:someTrans)
+		let lastFireDateDB = try Database.Strict<EncodedString, EncodedDate>(env:makeEnv, name:Databases.scheduleLastFireDate.rawValue, flags:[.create], tx:someTrans)
+		try someTrans.commit()
+		self.env = makeEnv
+		self.schedule_pid = pidDB
+		self.schedule_timeInterval = intervalDB
+		self.schedule_lastFireDate = lastFireDateDB
+		self.log = log
+		log?.notice("instance init", metadata:["path":"'\(targetURL.path)'"])
+	}
 
-			case .userExclusive:
-				// verify that the current user does not have any running processes
-				let userPIDCursor = try user_pid.cursor(tx:subTrans)
-				let makeDupIterator:Cursor.CursorDupIterator
-				do {
-					makeDupIterator = try userPIDCursor.makeDupIterator(key: curUser)
-				} catch LMDBError.notFound {
-					// no entries for this user. we can proceed
-					return
-				}
-				for (curUser, curPIDVal) in makeDupIterator {
-					let curPID = pid_t(curPIDVal)!
-					// validate that the PID is not running
-					let checkPID = kill(curPID, 0)
-					guard checkPID != 0 else {
-						Self.logger.error("unable to initialize new instance. exclusivity requirements could not be met.", metadata: [
-							"exclusivity": "\(exclusivity)",
-							"currentPID": "\(myPID)",
-							"currentUserID": "\(curUser)",
-							"conflictingPID": "\(curPID)",
-							"killResult": "\(checkPID)"
-						])
-						throw Error.exclusivityRequirementsNotMet
-					}
+	public func runSchedule(name unencodedName:String, interval:Double, _ task:@Sendable @escaping () async throws -> Void) async throws {
+		let name = EncodedString(unencodedName)
 
-					// the PID is not running, so we can remove it from the database
-					try pid_exclusivity.deleteEntry(key:curPIDVal, tx:subTrans)
-					try pid_user.deleteEntry(key:curPIDVal, tx:subTrans)
-					let pid_scheduleCursor = try pid_schedule.cursor(tx:subTrans)
-					do {
-						// remove any scheduled tasks for this PID
-						for (_, curScheduleName) in try pid_scheduleCursor.makeDupIterator(key: curPID) {
-							try schedule_task.deleteEntry(key:curScheduleName, tx:subTrans)
-							try schedule_pid.deleteEntry(key:curScheduleName, tx:subTrans)
-							try pid_scheduleCursor.deleteEntry()
-						}
-					} catch LMDBError.notFound {}
-					try userPIDCursor.deleteEntry()
-				}
-				// validation passed. document this process in the database
-				try pid_exclusivity.setEntry(value:exclusivity, forKey:myPID, tx:subTrans)
-				try user_pid.setEntry(value:myPID, forKey:curUser, flags:[.noDupData], tx:subTrans)
-				try pid_user.setEntry(value:curUser, forKey:myPID, flags:[.noOverwrite], tx:subTrans)
-			case .systemExclusive:
-				let pidEx_cursor = try self.pid_exclusivity.cursor(tx:subTrans)
-				// scan all the pid entries in the database
-				for (curPIDVal, _) in pidEx_cursor {
-					let asPID = pid_t(curPIDVal)!
+		// setup the task
+		let encodedName = name
+		let encodedInterval = EncodedDuration(RAW_native:interval)
+		let myPID = EncodedPID.currentPID()
 
-					// verify that the process is not running
-					let checkPID = kill(asPID, 0)
-					guard checkPID != 0 else {
-						Self.logger.error("unable to initialize new instance. exclusivity requirements could not be met.", metadata: [
-							"exclusivity": "\(exclusivity)",
-							"currentPID": "\(myPID)",
-							"conflictingPID": "\(asPID)",
-							"killResult": "\(checkPID)"
-						])
-						throw Error.exclusivityRequirementsNotMet
-					}
-				}
-
-				// validation passed.
-				// delete all the entries in the database
-				try self.pid_exclusivity.deleteAllEntries(tx:subTrans)
-				try self.pid_user.deleteAllEntries(tx:subTrans)
-				try self.user_pid.deleteAllEntries(tx:subTrans)
-				try self.schedule_pid.deleteAllEntries(tx:subTrans)
-				try self.pid_schedule.deleteAllEntries(tx:subTrans)
-				try self.schedule_task.deleteAllEntries(tx:subTrans)
-
-				// document this exclusive process in the database
-				try pid_exclusivity.setEntry(value:exclusivity, forKey:myPID, tx:subTrans)
-				try user_pid.setEntry(value:myPID, forKey:curUser, flags:[.noDupData], tx:subTrans)
-				try pid_user.setEntry(value:curUser, forKey:myPID, flags:[.noOverwrite], tx:subTrans)
+		var mutateLogger = log
+		mutateLogger?[metadataKey:"name"] = "\(name)"
+		mutateLogger?[metadataKey:"interval"] = "\(interval)s"
+		mutateLogger?.notice("task loop launched")
+		defer {
+			mutateLogger?.notice("task loop ended")
 		}
 
-		// commit the transaction
-		try subTrans.commit()
-	}
-	
-	// MARK: Scheduling
-	// launching scheduled tasks
-	public func launchScheduledTask<T>(_ task:T) throws where T:TaskProtocol {
-		let curPID = getpid()
-		try env.transact(readOnly:false) { installTaskTrans in
-			// ensure that the schedule does not already exist in the database.
+		// open the initial write transaction to document ourselves as the runner of the task. also capture the next target date
+		var nextTargetDate:Date
+		do {
+			let newTransaction = try Transaction(env:env, readOnly:false)
+
+			mutateLogger?.trace("task successfully opened introductory transaction")
 			do {
-				// ensure that we can assign our PID to the specified schedule name
-				try self.schedule_pid.setEntry(value:curPID, forKey:task.configuration.name, flags:[.noOverwrite], tx:installTaskTrans)
-				try self.pid_schedule.setEntry(value:task.configuration.name, forKey:curPID, flags:[.noDupData], tx:installTaskTrans)
-
-				// determine the next fire date for the schedule
-				let nextFire:Date
-				do {
-					let lastDate = try self.schedule_lastFire.getEntry(type:Date.self, forKey:task.configuration.name, tx:installTaskTrans)!
-					nextFire = lastDate.addingTimeInterval(task.configuration.timeInterval)
-				} catch LMDBError.notFound {
-					nextFire = Date()
-				}
-				
-				// launch the task and save it in the database
-				let newTask = Task<(), Swift.Error>.detached { [mdbEnv = env, lastFire = self.schedule_lastFire, referenceDate = nextFire, taskIn = task] in
-					// setup the async task
-					var mutableTask = taskIn
-					var nextTarget = referenceDate
-					while Task.isCancelled == false {
-						// calculate how much time needs to pass before the next run. wait that long.
-						let delayTime = nextTarget.timeIntervalSinceNow
-						if delayTime > 0 {
-							try await Task.sleep(nanoseconds: UInt64(delayTime * 1_000_000_000))
-						} else if (abs(delayTime) > mutableTask.configuration.timeInterval) {
-							nextTarget = Date()
-						}
-#if DEBUG
-						Self.logger.info("running task.", metadata: [
-							"task": "\(mutableTask.configuration.name)",
-							"nextTarget": "\(nextTarget)",
-							"delayTime": "\(delayTime)"
-						])
-#endif
-						// run the task and document the next fire date once it is complete
-						try await mutableTask.work()
-						let futureTask = nextTarget.addingTimeInterval(mutableTask.configuration.timeInterval)
-#if DEBUG
-						Self.logger.info("task done running.", metadata: [
-							"task": "\(mutableTask.configuration.name)",
-							"nextTarget": "\(nextTarget)",
-							"futureTask": "\(futureTask)",
-							"delayTime": "\(delayTime)"
-						])
-#endif
-						// update the database with the latest fire date
-						try mdbEnv.transact(readOnly:false) { someTrans in
-							try lastFire.setEntry(value:nextTarget, forKey:mutableTask.configuration.name, tx:someTrans)
-						}
-						nextTarget = futureTask
-					}
-				}
-
-				// write the task to the database
-				try self.schedule_task.setEntry(value:newTask, forKey:task.configuration.name, tx:installTaskTrans)
+				try schedule_pid.setEntry(key:encodedName, value:myPID, flags:[.noOverwrite], tx:newTransaction)
 			} catch LMDBError.keyExists {
-				let getPID = try schedule_pid.getEntry(type:pid_t.self, forKey:task.configuration.name, tx:installTaskTrans)!
-				throw Error.scheduleAlreadyRunning(getPID)
+				let existingPID = try schedule_pid.loadEntry(key:encodedName, tx:newTransaction).RAW_native()
+				guard kill(existingPID, 0) != 0 else {
+					mutateLogger?.warning("task is already running on PID '\(existingPID)'")
+					throw LMDBError.keyExists
+				}
+				try schedule_pid.setEntry(key:encodedName, value:myPID, flags:[], tx:newTransaction)
+			}
+			mutateLogger?.debug("task PID successfully assigned: '\(myPID.RAW_native())'")
+			try schedule_timeInterval.setEntry(key:encodedName, value:encodedInterval, flags:[], tx:newTransaction)
+			do {
+				let lastFireDate = try schedule_lastFireDate.loadEntry(key:encodedName, tx:newTransaction)
+				nextTargetDate = Date(lastFireDate).addingTimeInterval(interval)
+				mutateLogger?.trace("task was last fired at \(lastFireDate.timeIntervalSinceUnixDate()) (unix time), next target date is \(nextTargetDate.timeIntervalSinceUnixDate()) (unix time)")
+			} catch LMDBError.notFound {
+				mutateLogger?.trace("task has no last fire date, setting to fire the task now")
+				nextTargetDate = Date()
+			}
+			
+			try newTransaction.commit()
+		} catch let error {
+			mutateLogger?.error("task failed to initialize due to thrown error.", metadata:["error":"\(error)"])
+			throw error
+		}
+
+		// ensure that the task is removed from the database when it is done running
+		defer {
+			do {
+				let someTrans = try Transaction(env:env, readOnly:false)
+				mutateLogger?.debug("task is removing itself from the database")
+				try schedule_pid.deleteEntry(key:encodedName, tx:someTrans)
+				try schedule_timeInterval.deleteEntry(key:encodedName, tx:someTrans)
+				try someTrans.commit()
+				mutateLogger?.trace("successfully removed task from the database")
+			} catch let error {
+				#if DEBUG
+				mutateLogger?.critical("task failed to remove itself from the database due to thrown error", metadata:["error":"\(error)"])
+				fatalError("unable to remove task from database: \(error)")
+				#else
+				mutateLogger?.error("task failed to remove itself from the database due to thrown error", metadata:["error":"\(error)"])
+				#endif
 			}
 		}
-		// sync the database if noSync is enabled
-		if env.flags.contains(.noSync) == true {
-			try env.sync()
-		}
-	}
-	
-	// canceling scheduled task
-	public func cancelSchedule(_ name:String) throws {
-		// open a write transaction
-		try env.transact(readOnly:false) { someTrans in
-			let loadTask = try self.schedule_task.getEntry(type:Task<(), Swift.Error>.self, forKey:name, tx:someTrans)!
-			loadTask.cancel()
-			try self.schedule_task.deleteEntry(key:name, tx:someTrans)
-		}
 
-		// sync the database if noSync is enabled
-		if env.flags.contains(.noSync) == true {
-			try env.sync()
-		}
-	}
-	
-	deinit {
-		try! self.env.transact(readOnly:false) { someTrans in
-			try self.schedule_task.deleteAllEntries(tx:someTrans)
-		}
-		Self.logger.trace("instance deinitialized")
-	}
-}
+		// this should transparently throw any errors that are thrown within the users task, as well as any unexpected errors that may be thrown by LMDB.
+		// cancellation errors that occurr outside of the users code should NOT cascade outside of this group.
+		try await withThrowingTaskGroup(of:Void.self) { tg in
+			// primary task loop runs here. 
+			tg.addTask { [nextTargetDate, mutateLogger = mutateLogger, en = encodedName, myPID] in
+				var nextTargetDate = nextTargetDate
 
+				mainLoop: while true {
 
+					// determine how much time should pass before running the task
+					let delayTime = nextTargetDate.timeIntervalSince(Date())
+					if delayTime > 0 {
+						// wait for the next target date
+						mutateLogger?.debug("sleeping task until fire time")
+						do {
+							try await Task.sleep(nanoseconds:UInt64(delayTime * 1e9))
+						} catch is CancellationError {
+							break mainLoop
+						}
+					} else if delayTime < 0 {
+						mutateLogger?.debug("task will fire immediately")
+						// fire now
+						nextTargetDate = Date()
+					}
 
-// MARK: - ExclusivityLevel & MDB_convertible
-extension Scheduler.ExclusivityLevel:LosslessStringConvertible, MDB_convertible {
-	public init?(_ description: String) {
-		guard let asRawVal = UInt8(description) else {
-			return nil
+					// run the task
+					mutateLogger?.debug("running task.")
+					
+					// unexpected errors here should cause the task to cancel
+					do {
+						try await task()
+					} catch let error {
+						mutateLogger?.error("user task block failed with thrown error", metadata:["error":"\(error)"])
+						throw error
+					}
+
+					// write the new timing data to the database
+					let someTrans = try Transaction(env:env, readOnly:false)
+					mutateLogger?.debug("updating task timing data.", metadata:["next_target_date":"\(nextTargetDate)"])
+					// write the new fire date
+					try schedule_lastFireDate.setEntry(key:en, value:EncodedDate(nextTargetDate), flags:[], tx:someTrans)
+
+					// validate that we are still the owner of the schedule name and that we should continue firing it
+					let shouldBreak:Bool
+					do {
+						if try schedule_pid.loadEntry(key:en, tx:someTrans) != myPID {
+							// if the pid has changed, then the task has been rescheduled, so break out of the main loop
+							mutateLogger?.warning("task \(name) has been rescheduled")
+							shouldBreak = true
+						} else {
+							let nowDate = Date()
+							while nextTargetDate <= nowDate {
+								nextTargetDate = nextTargetDate.addingTimeInterval(interval)
+								mutateLogger?.trace("next target date \(nextTargetDate) is in the past, incrementing by \(interval) seconds")
+							}
+							// continue the main loop 
+							mutateLogger?.debug("task \(name) will fire next at \(nextTargetDate), which is ahead of \(nowDate)")
+							shouldBreak = false
+						}
+					} catch LMDBError.notFound {
+						mutateLogger?.warning("task \(name) is no longer scheduled with this pid")
+						shouldBreak = true
+					}
+					try someTrans.commit()
+					
+					// break the loop if the transaction deems we should, or if the task is under cancellation conditions
+					guard shouldBreak == false && Task.isCancelled == false else {
+						break mainLoop
+					}
+				}
+			}
+
+			tg.addTask {
+				try await gracefulShutdown()
+			}
+			_ = try await tg.next()
+			tg.cancelAll()
 		}
-		self.init(rawValue:asRawVal)
-	}
-	
-	public var description: String {
-		return String(self.rawValue)
-	}
-}
-
-// MARK: - Swift.Task & MDB_convertible
-extension Task:MDB_convertible {
-	public init?(_ value: MDB_val) {
-		guard MemoryLayout<Self>.stride == value.mv_size else {
-			return nil
-		}
-		self = value.mv_data.bindMemory(to:Self.self, capacity:1).pointee
-	}
-	
-	public func asMDB_val<R>(_ valFunc: (inout MDB_val) throws -> R) rethrows -> R {
-		return try withUnsafePointer(to:self, { unsafePointer in
-			var newVal = MDB_val(mv_size:MemoryLayout<Self>.stride, mv_data:UnsafeMutableRawPointer(mutating:unsafePointer))
-			return try valFunc(&newVal)
-		})
 	}
 }

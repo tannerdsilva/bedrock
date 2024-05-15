@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 // resize the buffer of an allocated lineparser_t
-void lineparser_resize_up(lineparser_t *parser) {
+void lineparser_resize_up(_cbedrock_lineparser_t *parser) {
 	// double the size of the buffer
 	parser->buffsize = parser->buffsize * 2;
 
@@ -18,15 +18,15 @@ void lineparser_resize_up(lineparser_t *parser) {
 }
 
 // prepares the line parser to parse the next line. clears the previous line from the buffer
-void lineparser_trim(lineparser_t *parser) {
+void lineparser_trim(_cbedrock_lineparser_t *parser) {
 	memcpy(parser->intakebuff, parser->intakebuff + parser->i, parser->buffsize - parser->i);
 	parser->occupied = parser->occupied - parser->i;
 	parser->i = 0;
 }
 
 // initialize a line parser
-extern lineparser_t lp_init(const uint8_t*_Nullable match, const uint8_t matchlen) {
-	lineparser_t newparser = {
+extern _cbedrock_lineparser_t _cbedrock_lp_init(const uint8_t*_Nullable match, const uint8_t matchlen) {
+	_cbedrock_lineparser_t newparser = {
 		.buffsize = 1024,
 		.intakebuff = malloc(1024),
 		.i = 0,
@@ -43,7 +43,7 @@ extern lineparser_t lp_init(const uint8_t*_Nullable match, const uint8_t matchle
 }
 
 // send data into the line parser
-extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intake_data, size_t data_len, datahandler_f dh) {
+extern void _cbedrock_lp_intake(_cbedrock_lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intake_data, size_t data_len, _cbedrock_datahandler_f dh) {
 	if (parser->matchsize > 0) {
 		// resize the parser to fit the data, if necessary
 		while ((parser->occupied + data_len) > parser->buffsize) {
@@ -82,7 +82,7 @@ extern void lp_intake(lineparser_t*_Nonnull parser, const uint8_t*_Nonnull intak
 }
 
 // close the line parser from memory
-extern void lp_close(lineparser_t*_Nonnull parser, datahandler_f dh) {
+extern void _cbedrock_lp_close(_cbedrock_lineparser_t*_Nonnull parser, _cbedrock_datahandler_f dh) {
 	if (parser->occupied > 0) {
 		dh(parser->intakebuff, parser->occupied);
 	}
@@ -93,7 +93,7 @@ extern void lp_close(lineparser_t*_Nonnull parser, datahandler_f dh) {
 }
 
 // close the line parser from memory while also discarding (and mishandling) any leftover data that may be in the buffer
-extern void lp_close_dataloss(lineparser_t*_Nonnull parser) {
+extern void _cbedrock_lp_close_dataloss(_cbedrock_lineparser_t*_Nonnull parser) {
 	free(parser->intakebuff);
 	if (parser->matchsize > 0) {
 		free(parser->match);

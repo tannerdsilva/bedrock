@@ -5,17 +5,26 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tannerdsilva/CLMDB.git",
       "state" : {
-        "revision" : "f7510b3861a7f27bb054ddb0f1ee2983dd6a0f6f",
-        "version" : "0.9.29"
+        "revision" : "30d45263c8e512b01ab073e77ebff09039bdc593",
+        "version" : "0.9.31"
       }
     },
     {
       "identity" : "quicklmdb",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tannerdsilva/quicklmdb.git",
+      "location" : "https://github.com/tannerdsilva/QuickLMDB.git",
       "state" : {
-        "revision" : "75ffc1a3947863bd98366f0ce1172c06c046a2ec",
-        "version" : "1.4.2"
+        "revision" : "58f888130d8b1feb5f805d3a87034e41a2ffe703",
+        "version" : "2.1.0"
+      }
+    },
+    {
+      "identity" : "rawdog",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tannerdsilva/rawdog.git",
+      "state" : {
+        "revision" : "6ebbf0796310c70ecc2b9c933536556e0c7886d7",
+        "version" : "8.0.0"
       }
     },
     {
@@ -28,12 +37,48 @@
       }
     },
     {
+      "identity" : "swift-async-algorithms",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-async-algorithms.git",
+      "state" : {
+        "revision" : "da4e36f86544cdf733a40d59b3a2267e3a7bbf36",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "94cf62b3ba8d4bed62680a282d4c25f9c63c2efb",
+        "version" : "1.1.0"
+      }
+    },
+    {
       "identity" : "swift-log",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
       "state" : {
-        "revision" : "3e3ef75109d6801b2c44504e73f55f0dce6662c9",
-        "version" : "1.5.1"
+        "revision" : "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
+        "version" : "1.5.4"
+      }
+    },
+    {
+      "identity" : "swift-service-lifecycle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-server/swift-service-lifecycle.git",
+      "state" : {
+        "revision" : "12a031bcc1284c64d6b847f5013ffe6dcca964d0",
+        "version" : "2.5.0"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax.git",
+      "state" : {
+        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
+        "version" : "509.1.1"
       }
     },
     {
