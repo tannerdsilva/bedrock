@@ -10,6 +10,7 @@ let package = Package(
         .library(
             name: "bedrock",
             targets: ["bedrock"]),
+		.library(name:"bedrock-ipaddress", targets: ["bedrock-ipaddress"])
     ],
     dependencies: [
         .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", from:"2.1.0"),
