@@ -107,11 +107,22 @@ public struct RangeV4 {
 	}
 }
 
-public struct NetworkV4 {
+@RAW_staticbuff(concat:AddressV4, RAW_byte)
+@MDB_comparable()
+public struct NetworkV4:RAW_comparable_fixed, Comparable, Equatable {
 	public let address:AddressV4
-	public let prefix:UInt8
+	fileprivate let _prefix:RAW_byte
+	public var prefix:UInt8 {
+		get {
+			return _prefix.RAW_native()
+		}
+	}
 	
-	public let range:RangeV4
+	public var range:RangeV4 {
+		get {
+			return RangeV4(address:address, netmask:AddressV4(netmaskPrefix:_prefix.RAW_native())!)
+		}
+	}
 	
 	public init?(_ cidr:String) {
 		let parts = cidr.split(separator:"/").map(String.init)
@@ -123,12 +134,11 @@ public struct NetworkV4 {
 		}
 		
 		self.address = address
-		self.prefix = prefix
+		self._prefix = RAW_byte(RAW_native:prefix)
 		let hasNetmaskPrefix = AddressV4(netmaskPrefix:prefix)
 		guard hasNetmaskPrefix != nil else {
 			return nil
 		}
-		self.range = RangeV4(address:address, netmask:hasNetmaskPrefix!)
 	}
 	
 	public func contains(_ address:AddressV4) -> Bool {

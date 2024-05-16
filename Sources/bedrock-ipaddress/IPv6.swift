@@ -76,7 +76,6 @@ extension String {
 	}
 }
 
-
 @RAW_staticbuff(concat:AddressV6, AddressV6)
 public struct RangeV6 {
 	public let lowerBound:AddressV6
@@ -117,11 +116,22 @@ public struct RangeV6 {
 	}
 }
 
-public struct NetworkV6 {
+@RAW_staticbuff(concat:AddressV6, RAW_byte)
+@MDB_comparable()
+public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable {
 	public let address:AddressV6
-	public let prefix:UInt8
+	fileprivate let _prefix:RAW_byte
+	public var prefix:UInt8 {
+		get {
+			return _prefix.RAW_native()
+		}
+	}
 	
-	public let range:RangeV6
+	public var range:RangeV6 {
+		get {
+			return RangeV6(address:address, netmask:AddressV6(netmaskPrefix:_prefix.RAW_native())!)
+		}
+	}
 	
 	public init?(_ cidr:String) {
 		let parts = cidr.split(separator:"/").map(String.init)
@@ -133,12 +143,10 @@ public struct NetworkV6 {
 		}
 		
 		self.address = address
-		self.prefix = prefix
-		let hasNetmaskPrefix = AddressV6(netmaskPrefix:prefix)
-		guard hasNetmaskPrefix != nil else {
+		self._prefix = RAW_byte(RAW_native:prefix)
+		guard AddressV6(netmaskPrefix:prefix) != nil else {
 			return nil
 		}
-		self.range = RangeV6(address:address, netmask:hasNetmaskPrefix!)
 	}
 	
 	public func contains(_ address:AddressV6) -> Bool {
