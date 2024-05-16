@@ -20,6 +20,11 @@ final class AddressV4Tests: XCTestCase {
         let address = AddressV4(addressString)
         XCTAssertEqual(String(address!), addressString)
     }
+
+	func testAddressV4Range() {
+		let rangeString = NetworkV4("192.168.1.1/24")!
+		XCTAssertEqual(String(rangeString.range.upperBound), "192.168.1.255")
+	}
 }
 
 extension AddressV4Tests {

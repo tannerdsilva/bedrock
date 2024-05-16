@@ -10,7 +10,7 @@ final class AddressV6Tests: XCTestCase {
     }
     
     func testInvalidAddressV6() {
-        let invalidAddressString = "2001:0db8:85a3::8a2e:0370"
+        let invalidAddressString = "2001:0db8:85a3:!:8a2e:0370"
         let address = AddressV6(invalidAddressString)
         XCTAssertNil(address)
     }
@@ -20,6 +20,12 @@ final class AddressV6Tests: XCTestCase {
         let address = AddressV6(addressString)
         XCTAssertEqual(String(address!), addressString)
     }
+
+	func testAddressV6Range() {
+		let addy = AddressV6("fe80::1")!
+		let rangeString = NetworkV6("fe80:fe80:fe80:fe80::1/64")!
+		XCTAssertEqual(String(rangeString.range.upperBound), "fe80:fe80:fe80:fe80:ffff:ffff:ffff:ffff")
+	}
 }
 
 extension AddressV6Tests {

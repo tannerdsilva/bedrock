@@ -5,54 +5,35 @@ import QuickLMDB
 @MDB_comparable()
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable {
 	public init?(_ address:String) {
-		let segments = address.split(separator:":", omittingEmptySubsequences:false)
-		var bytes = [UInt8]()
-		var compressionIndex: Int? = nil
-
-		// coubt non-empty segments and identify compression index
-		var actualSegmentCount = 0
-		for (index, segment) in segments.enumerated() {
-			if segment.isEmpty {
-				if compressionIndex == nil {
-					compressionIndex = index
-				} else {
-					return nil
-				}
-			} else {
-				actualSegmentCount += 1
-			}
-		}
-
-		// calculate the number of segments to be filled with zero
-		var segmentsToFill = 8 - actualSegmentCount
-		if compressionIndex != nil {
-			segmentsToFill += 1 // Include the "::" compression in the count
-		}
-
-		// parse and fill segments
-		for (index, segment) in segments.enumerated() {
-			if segment.isEmpty {
-				if index == compressionIndex {
-					// fill with the correct number of zeros if it's the compression index
-					for _ in 0..<segmentsToFill {
-						bytes.append(0)
-						bytes.append(0)
-					}
-				}
-			} else {
-				let segmentValue = UInt16(segment, radix: 16)
-				guard segmentValue != nil else {
-					return nil // invalid hexadecimal segment
-				}
-				bytes.append(UInt8(segmentValue! >> 8))
-				bytes.append(UInt8(segmentValue! & 0xFF))
-			}
-		}
-
-		// Ensure the total bytes count is exactly 16
-		guard bytes.count == 16 else {
-			return nil
-		}
+		var bytes = [UInt8](repeating: 0, count: 16)
+		let segments = address.split(separator: ":", omittingEmptySubsequences: false)
+        var byteIndex = 0
+        var foundCompression = false
+        
+        // Determine where the compression index is (if it exists)
+        let compressionIndex = segments.firstIndex(of: "")
+        
+        for (index, segment) in segments.enumerated() {
+            if segment.isEmpty {
+                if index == compressionIndex { // handle compression "::"
+                    let remainingSegments = 8 - (segments.count - 1)
+                    byteIndex += remainingSegments * 2
+                    foundCompression = true
+                }
+            } else {
+                guard let segmentValue = UInt16(segment, radix: 16) else {
+                    return nil // invalid hexadecimal segment
+                }
+                bytes[byteIndex] = UInt8(segmentValue >> 8)
+                bytes[byteIndex + 1] = UInt8(segmentValue & 0xFF)
+                byteIndex += 2
+            }
+        }
+        
+        // If no compression was found and byteIndex is not at the end, it's an error
+        if byteIndex != 16 && !foundCompression {
+            return nil
+        }
 
 		self = Self(RAW_staticbuff:&bytes)
 	}
