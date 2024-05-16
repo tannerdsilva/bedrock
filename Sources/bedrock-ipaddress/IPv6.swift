@@ -76,16 +76,16 @@ extension String {
 	}
 }
 
-public typealias RangeV6 = ClosedRange<AddressV6>
-extension RangeV6 {
-	public init?(_ rangeString:String) {
-		let parts = rangeString.split(separator:"-", omittingEmptySubsequences:true).map(String.init)
-		guard parts.count == 2, let lower = AddressV6(parts[0]), let upper = AddressV6(parts[1]), lower <= upper else {
-			return nil
-		}
-		self = lower...upper
-	}
 
+@RAW_staticbuff(concat:AddressV6, AddressV6)
+public struct RangeV6 {
+	public let lowerBound:AddressV6
+	public let upperBound:AddressV6
+	public init(lower:AddressV6, upper:AddressV6) {
+		self.lowerBound = lower
+		self.upperBound = upper
+	}
+	
 	public init(address:AddressV6, netmask:AddressV6) {
 		var lowerBytes = [UInt8](repeating:0, count:16)
 		var upperBytes = [UInt8](repeating:0, count:16)
@@ -97,10 +97,25 @@ extension RangeV6 {
 				}
 			}
 		}
-		self = AddressV6(RAW_staticbuff:&lowerBytes)...AddressV6(RAW_staticbuff:&upperBytes)
+		self = Self(lower:AddressV6(RAW_staticbuff:&lowerBytes), upper:AddressV6(RAW_staticbuff:&upperBytes))
+	}
+	
+	public init?(_ rangeString:String) {
+		let parts = rangeString.split(separator:"-", omittingEmptySubsequences:true).map(String.init)
+		guard parts.count == 2, let lower = AddressV6(parts[0]), let upper = AddressV6(parts[1]), lower <= upper else {
+			return nil
+		}
+		self.init(lower:lower, upper:upper)
+	}
+
+	public func contains(_ address:AddressV6) -> Bool {
+		return lowerBound <= address && address <= upperBound
+	}
+
+	public func overlaps(_ range:RangeV6) -> Bool {
+		return contains(range.lowerBound) || contains(range.upperBound)
 	}
 }
-
 
 public struct NetworkV6 {
 	public let address:AddressV6
