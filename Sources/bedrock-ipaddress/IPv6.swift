@@ -155,6 +155,11 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable {
 		}
 	}
 	
+	public init(address:AddressV6, prefix:UInt8) {
+		self.address = address
+		self._prefix = RAW_byte(RAW_native:prefix)
+	}
+	
 	public init?(_ cidr:String) {
 		let parts = cidr.split(separator:"/").map(String.init)
 		guard parts.count == 2,
