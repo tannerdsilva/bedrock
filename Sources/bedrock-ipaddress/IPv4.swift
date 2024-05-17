@@ -45,18 +45,41 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable {
 		self.init(RAW_staticbuff:&bytes)
 	}
 
-	public func masked(by netmask:AddressV4) -> AddressV4 {
-		return self.RAW_access_staticbuff { addressBytes -> AddressV4 in
-			return netmask.RAW_access_staticbuff { maskBytes -> AddressV4 in
-				let addressPtr = addressBytes.assumingMemoryBound(to:UInt8.self)
-				let maskPtr = maskBytes.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(addressPtr[0] & maskPtr[0], addressPtr[1] & maskPtr[1], addressPtr[2] & maskPtr[2], addressPtr[3] & maskPtr[3])) {
+	public static func & (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
+		return lhs.RAW_access_staticbuff { lhsPtr -> AddressV4 in
+			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV4 in
+				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
+				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
+				return withUnsafePointer(to:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3])) {
+					return AddressV4(RAW_staticbuff:$0)
+				}
+			}
+		}
+	}
+
+
+	public static prefix func ~ (_ address:AddressV4) -> AddressV4 {
+		return address.RAW_access_staticbuff { ptr in
+			let bytes = ptr.assumingMemoryBound(to:UInt8.self)
+			return withUnsafePointer(to:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3])) {
+				return AddressV4(RAW_staticbuff:$0)
+			}
+		}
+	}
+
+	public static func | (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
+		return lhs.RAW_access_staticbuff { lhsPtr -> AddressV4 in
+			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV4 in
+				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
+				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
+				return withUnsafePointer(to:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3])) {
 					return AddressV4(RAW_staticbuff:$0)
 				}
 			}
 		}
 	}
 }
+
 
 extension String {
 	public init(_ address:AddressV4) {
