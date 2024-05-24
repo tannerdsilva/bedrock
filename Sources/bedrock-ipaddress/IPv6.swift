@@ -3,7 +3,7 @@ import QuickLMDB
 
 @RAW_staticbuff(bytes:16)
 @MDB_comparable()
-public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable {
+public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public init?(_ address:String) {
 		var bytes = [UInt8](repeating: 0, count: 16)
 		let segments = address.split(separator: ":", omittingEmptySubsequences: false)

@@ -13,7 +13,7 @@ let package = Package(
 		.library(name:"bedrock-ipaddress", targets: ["bedrock-ipaddress"])
     ],
     dependencies: [
-        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", from:"2.1.0"),
+        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", revision:"80cc709cb67e6bb6bd0e0ab7cc79f324c7fc4927"),
         .package(url:"https://github.com/tannerdsilva/rawdog.git", from:"8.1.0"),
   		.package(url:"https://github.com/apple/swift-argument-parser.git", from:"1.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", from:"1.0.0"),
@@ -24,7 +24,6 @@ let package = Package(
 			.product(name:"RAW", package:"rawdog"),
 			.product(name:"QuickLMDB", package:"QuickLMDB")
 		]),
-		// .target("bedrock-date", dependencies: ["RAW"])
         .target(
             name: "bedrock",
             dependencies: [

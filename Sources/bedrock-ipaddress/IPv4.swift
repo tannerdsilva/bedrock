@@ -3,7 +3,7 @@ import QuickLMDB
 
 @RAW_staticbuff(bytes:4)
 @MDB_comparable()
-public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable {
+public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public init?(_ address:String) {
 		let parts = address.split(separator:".")
 		guard parts.count == 4 else {
