@@ -1,5 +1,10 @@
-import cbedrock
 import RAW
+
+#if os(Linux)
+import Glibc
+#elseif os(macOS)
+import Darwin
+#endif
 
 /// returns a ``time_t`` struct representing the reference date for this Date type.
 /// **NOTE**: the reference date is 00:00:00 UTC on 1 January 2001.

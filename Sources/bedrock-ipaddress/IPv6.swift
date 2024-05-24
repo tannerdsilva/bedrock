@@ -1,9 +1,17 @@
 import RAW
 import QuickLMDB
 
+#if os(Linux)
+import Glibc
+#elseif os(macOS)
+import Darwin
+#endif
+
 @RAW_staticbuff(bytes:16)
 @MDB_comparable()
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+    public typealias RAW_fixed_type = RAW_staticbuff_storetype
+
 	public init?(_ address:String) {
 		var bytes = [UInt8](repeating: 0, count: 16)
 		let segments = address.split(separator: ":", omittingEmptySubsequences: false)
@@ -90,10 +98,25 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 
 extension String {
-	public init(_ address:AddressV6) {
+	public init(address4 address:AddressV4) {
 		self = address.RAW_access_staticbuff({
 			let bytes = $0.assumingMemoryBound(to:UInt8.self)
-			return String(format:"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15])
+			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:16)
+			guard inet_ntop(AF_INET, bytes, stringBuffer.baseAddress, 16) != nil else {
+				fatalError("ipv4 address could not be string encoded")
+			}
+			return String(cString:stringBuffer.baseAddress!)
+		})
+	
+	}
+	public init(address6 address:AddressV6) {
+		self = address.RAW_access_staticbuff({
+			let bytes = $0.assumingMemoryBound(to:UInt8.self)
+			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:40)
+			guard inet_ntop(AF_INET6, bytes, stringBuffer.baseAddress, 40) != nil else {
+				fatalError("ipv6 address could not be string encoded")
+			}
+			return String(cString:stringBuffer.baseAddress!)
 		})
 	}
 }
@@ -141,6 +164,8 @@ public struct RangeV6 {
 @RAW_staticbuff(concat:AddressV6, RAW_byte)
 @MDB_comparable()
 public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable {
+    public typealias RAW_fixed_type = RAW_staticbuff_storetype
+
 	public let address:AddressV6
 	fileprivate let _prefix:RAW_byte
 	public var prefix:UInt8 {

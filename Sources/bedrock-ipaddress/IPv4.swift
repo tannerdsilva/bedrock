@@ -4,6 +4,8 @@ import QuickLMDB
 @RAW_staticbuff(bytes:4)
 @MDB_comparable()
 public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+    public typealias RAW_fixed_type = RAW_staticbuff_storetype
+
 	public init?(_ address:String) {
 		let parts = address.split(separator:".")
 		guard parts.count == 4 else {
@@ -133,6 +135,8 @@ public struct RangeV4 {
 @RAW_staticbuff(concat:AddressV4, RAW_byte)
 @MDB_comparable()
 public struct NetworkV4:RAW_comparable_fixed, Comparable, Equatable {
+    public typealias RAW_fixed_type = RAW_staticbuff_storetype
+
 	public let address:AddressV4
 	fileprivate let _prefix:RAW_byte
 	public var prefix:UInt8 {

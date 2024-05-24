@@ -3,7 +3,13 @@ import QuickLMDB
 import Logging
 import struct Foundation.URL
 import ServiceLifecycle
-import cbedrock
+// import cbedrock
+
+#if os(Linux)
+import Glibc
+#elseif os(macOS)
+import Darwin
+#endif
 
 @RAW_staticbuff(bytes:4)
 @RAW_staticbuff_fixedwidthinteger_type<pid_t>(bigEndian:true)
