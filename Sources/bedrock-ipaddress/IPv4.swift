@@ -93,7 +93,7 @@ extension String {
 }
 
 @RAW_staticbuff(concat:AddressV4, AddressV4)
-public struct RangeV4 {
+public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public let lowerBound:AddressV4
 	public let upperBound:AddressV4
 	public init(lower:AddressV4, upper:AddressV4) {
@@ -134,7 +134,7 @@ public struct RangeV4 {
 
 @RAW_staticbuff(concat:AddressV4, RAW_byte)
 @MDB_comparable()
-public struct NetworkV4:RAW_comparable_fixed, Comparable, Equatable {
+public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
     public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV4
