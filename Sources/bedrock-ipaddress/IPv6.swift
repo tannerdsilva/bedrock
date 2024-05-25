@@ -10,38 +10,38 @@ import Darwin
 @RAW_staticbuff(bytes:16)
 @MDB_comparable()
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
-    public typealias RAW_fixed_type = RAW_staticbuff_storetype
+	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:String) {
 		var bytes = [UInt8](repeating: 0, count: 16)
 		let segments = address.split(separator: ":", omittingEmptySubsequences: false)
-        var byteIndex = 0
-        var foundCompression = false
-        
-        // Determine where the compression index is (if it exists)
-        let compressionIndex = segments.firstIndex(of: "")
-        
-        for (index, segment) in segments.enumerated() {
-            if segment.isEmpty {
-                if index == compressionIndex { // handle compression "::"
-                    let remainingSegments = 8 - (segments.count - 1)
-                    byteIndex += remainingSegments * 2
-                    foundCompression = true
-                }
-            } else {
-                guard let segmentValue = UInt16(segment, radix: 16) else {
-                    return nil // invalid hexadecimal segment
-                }
-                bytes[byteIndex] = UInt8(segmentValue >> 8)
-                bytes[byteIndex + 1] = UInt8(segmentValue & 0xFF)
-                byteIndex += 2
-            }
-        }
-        
-        // If no compression was found and byteIndex is not at the end, it's an error
-        if byteIndex != 16 && !foundCompression {
-            return nil
-        }
+		var byteIndex = 0
+		var foundCompression = false
+		
+		// Determine where the compression index is (if it exists)
+		let compressionIndex = segments.firstIndex(of: "")
+		
+		for (index, segment) in segments.enumerated() {
+			if segment.isEmpty {
+				if index == compressionIndex { // handle compression "::"
+					let remainingSegments = 8 - (segments.count - 1)
+					byteIndex += remainingSegments * 2
+					foundCompression = true
+				}
+			} else {
+				guard let segmentValue = UInt16(segment, radix: 16) else {
+					return nil // invalid hexadecimal segment
+				}
+				bytes[byteIndex] = UInt8(segmentValue >> 8)
+				bytes[byteIndex + 1] = UInt8(segmentValue & 0xFF)
+				byteIndex += 2
+			}
+		}
+		
+		// If no compression was found and byteIndex is not at the end, it's an error
+		if byteIndex != 16 && !foundCompression {
+			return nil
+		}
 
 		self = Self(RAW_staticbuff:&bytes)
 	}
@@ -123,6 +123,8 @@ extension String {
 
 @RAW_staticbuff(concat:AddressV6, AddressV6)
 public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+	public typealias RAW_fixed_type = RAW_staticbuff_storetype
+
 	public let lowerBound:AddressV6
 	public let upperBound:AddressV6
 	public init(lower:AddressV6, upper:AddressV6) {
@@ -164,7 +166,7 @@ public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 @RAW_staticbuff(concat:AddressV6, RAW_byte)
 @MDB_comparable()
 public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
-    public typealias RAW_fixed_type = RAW_staticbuff_storetype
+	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV6
 	fileprivate let _prefix:RAW_byte
