@@ -143,22 +143,22 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV4
-	fileprivate let _prefix:RAW_byte
-	public var prefix:UInt8 {
+	fileprivate let _subnet_prefix:RAW_byte
+	public var subnet_prefix:UInt8 {
 		get {
-			return _prefix.RAW_native()
+			return _subnet_prefix.RAW_native()
 		}
 	}
 	
 	public var range:RangeV4 {
 		get {
-			return RangeV4(address:address, netmask:AddressV4(netmaskPrefix:_prefix.RAW_native())!)
+			return RangeV4(address:address, netmask:AddressV4(netmaskPrefix:_subnet_prefix.RAW_native())!)
 		}
 	}
 	
-	public init(address:AddressV4, prefix:UInt8) {
+	public init(address:AddressV4, subnetPrefix:UInt8) {
 		self.address = address
-		self._prefix = RAW_byte(RAW_native:prefix)
+		self._subnet_prefix = RAW_byte(RAW_native:subnetPrefix)
 	}
 	
 	public init?(_ cidr:String) {
@@ -171,7 +171,7 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		}
 		
 		self.address = address
-		self._prefix = RAW_byte(RAW_native:prefix)
+		self._subnet_prefix = RAW_byte(RAW_native:prefix)
 		let hasNetmaskPrefix = AddressV4(netmaskPrefix:prefix)
 		guard hasNetmaskPrefix != nil else {
 			return nil
