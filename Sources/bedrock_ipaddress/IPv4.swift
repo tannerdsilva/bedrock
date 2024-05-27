@@ -85,6 +85,12 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
+extension AddressV4:CustomDebugStringConvertible {
+	public var debugDescription:String {
+		return String(self)
+	}
+}
+
 
 extension String {
 	public init(_ address:AddressV4) {
@@ -137,6 +143,12 @@ public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
+extension RangeV4:CustomDebugStringConvertible {
+	public var debugDescription:String {
+		return "\(lowerBound)-\(upperBound)"
+	}
+}
+
 @RAW_staticbuff(concat:AddressV4, RAW_byte)
 @MDB_comparable()
 public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
@@ -184,5 +196,11 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	
 	public func overlaps(with network:NetworkV4) -> Bool {
 		return range.overlaps(network.range)
+	}
+}
+
+extension NetworkV4:CustomDebugStringConvertible {
+	public var debugDescription:String {
+		return "\(address)/\(subnetPrefix)"
 	}
 }
