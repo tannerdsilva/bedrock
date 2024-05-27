@@ -30,7 +30,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		guard netmaskPrefix <= 32 else {
 			return nil
 		}
-		var fourBytes: (UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0)
+		var fourBytes:(UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0)
 		let fullByteCount = Int(netmaskPrefix / 8)
 		switch fullByteCount {
 			case 1:
@@ -46,7 +46,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 			}
 		let extraBits = Int(netmaskPrefix % 8)
 		if extraBits > 0 {
-			let mask = 0xFF << (8 - extraBits)
+			let mask = (0xFF << (8 - extraBits)) & 0xFF
 			switch fullByteCount {
 				case 0:
 					fourBytes.0 = UInt8(mask)
