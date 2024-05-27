@@ -46,31 +46,57 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		self = Self(RAW_staticbuff:&initialBytes)
 	}
 
-	public init?(netmaskPrefix:UInt8) {
-		// sixteen byte tuple initialized to 0xFF for each byte
-		var sixteenBytes:RAW_staticbuff_storetype = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
-		let fullBytes = Int(netmaskPrefix / 8)
-		let extraBits = Int(netmaskPrefix % 8)
-		switch fullBytes {
-			case 15: sixteenBytes.15 = 0xFF << (8 - extraBits)
-			case 14: sixteenBytes.14 = 0xFF << (8 - extraBits)
-			case 13: sixteenBytes.13 = 0xFF << (8 - extraBits)
-			case 12: sixteenBytes.12 = 0xFF << (8 - extraBits)
-			case 11: sixteenBytes.11 = 0xFF << (8 - extraBits)
-			case 10: sixteenBytes.10 = 0xFF << (8 - extraBits)
-			case 9: sixteenBytes.9 = 0xFF << (8 - extraBits)
-			case 8: sixteenBytes.8 = 0xFF << (8 - extraBits)
-			case 7: sixteenBytes.7 = 0xFF << (8 - extraBits)
-			case 6: sixteenBytes.6 = 0xFF << (8 - extraBits)
-			case 5: sixteenBytes.5 = 0xFF << (8 - extraBits)
-			case 4: sixteenBytes.4 = 0xFF << (8 - extraBits)
-			case 3: sixteenBytes.3 = 0xFF << (8 - extraBits)
-			case 2: sixteenBytes.2 = 0xFF << (8 - extraBits)
-			case 1: sixteenBytes.1 = 0xFF << (8 - extraBits)
-			case 0: sixteenBytes.0 = 0xFF << (8 - extraBits)
-			default: return nil
+	public init?(subnetPrefix netmaskPrefix: UInt8) {
+		guard netmaskPrefix <= 128 else {
+			return nil
 		}
-		self = Self(RAW_staticbuff:&sixteenBytes)
+		var sixteenBytes: RAW_staticbuff_storetype = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+		let fullBytes = Int(netmaskPrefix / 8)
+		for i in 0..<fullBytes {
+			switch i {
+				case 0: sixteenBytes.0 = 0xFF
+				case 1: sixteenBytes.1 = 0xFF
+				case 2: sixteenBytes.2 = 0xFF
+				case 3: sixteenBytes.3 = 0xFF
+				case 4: sixteenBytes.4 = 0xFF
+				case 5: sixteenBytes.5 = 0xFF
+				case 6: sixteenBytes.6 = 0xFF
+				case 7: sixteenBytes.7 = 0xFF
+				case 8: sixteenBytes.8 = 0xFF
+				case 9: sixteenBytes.9 = 0xFF
+				case 10: sixteenBytes.10 = 0xFF
+				case 11: sixteenBytes.11 = 0xFF
+				case 12: sixteenBytes.12 = 0xFF
+				case 13: sixteenBytes.13 = 0xFF
+				case 14: sixteenBytes.14 = 0xFF
+				case 15: sixteenBytes.15 = 0xFF
+				default: break
+			}
+		}
+		let extraBits = Int(netmaskPrefix % 8)
+		if extraBits > 0 && fullBytes < 16 {
+			let mask = 0xFF << (8 - extraBits)
+			switch fullBytes {
+				case 0: sixteenBytes.0 = UInt8(mask)
+				case 1: sixteenBytes.1 = UInt8(mask)
+				case 2: sixteenBytes.2 = UInt8(mask)
+				case 3: sixteenBytes.3 = UInt8(mask)
+				case 4: sixteenBytes.4 = UInt8(mask)
+				case 5: sixteenBytes.5 = UInt8(mask)
+				case 6: sixteenBytes.6 = UInt8(mask)
+				case 7: sixteenBytes.7 = UInt8(mask)
+				case 8: sixteenBytes.8 = UInt8(mask)
+				case 9: sixteenBytes.9 = UInt8(mask)
+				case 10: sixteenBytes.10 = UInt8(mask)
+				case 11: sixteenBytes.11 = UInt8(mask)
+				case 12: sixteenBytes.12 = UInt8(mask)
+				case 13: sixteenBytes.13 = UInt8(mask)
+				case 14: sixteenBytes.14 = UInt8(mask)
+				case 15: sixteenBytes.15 = UInt8(mask)
+				default: break
+			}
+		}
+		self = Self(RAW_staticbuff: &sixteenBytes)
 	}
 
 	public static func & (lhs:AddressV6, rhs:AddressV6) -> AddressV6 {
@@ -190,7 +216,7 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	
 	public var range:RangeV6 {
 		get {
-			return RangeV6(address:address, netmask:AddressV6(netmaskPrefix:_subnet_prefix.RAW_native())!)
+			return RangeV6(address:address, netmask:AddressV6(subnetPrefix:_subnet_prefix.RAW_native())!)
 		}
 	}
 	
@@ -210,7 +236,7 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		
 		self.address = address
 		self._subnet_prefix = RAW_byte(RAW_native:prefix)
-		guard AddressV6(netmaskPrefix:prefix) != nil else {
+		guard AddressV6(subnetPrefix:prefix) != nil else {
 			return nil
 		}
 	}

@@ -26,28 +26,41 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		}
 	}
 
-	public init?(netmaskPrefix:UInt8) {
+	public init?(subnetPrefix netmaskPrefix:UInt8) {
 		guard netmaskPrefix <= 32 else {
 			return nil
 		}
-		var fourBytes:(UInt8, UInt8, UInt8, UInt8) = (0xFF, 0xFF, 0xFF, 0xFF)
+		var fourBytes: (UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0)
+		let fullByteCount = Int(netmaskPrefix / 8)
+		switch fullByteCount {
+			case 1:
+				fourBytes.0 = 0xFF
+			case 2:
+				fourBytes = (0xFF, 0xFF, 0, 0)
+			case 3:
+				fourBytes = (0xFF, 0xFF, 0xFF, 0)
+			case 4:
+				fourBytes = (0xFF, 0xFF, 0xFF, 0xFF)
+			default:
+				break
+			}
 		let extraBits = Int(netmaskPrefix % 8)
 		if extraBits > 0 {
-			switch Int(netmaskPrefix / 8) {
+			let mask = 0xFF << (8 - extraBits)
+			switch fullByteCount {
 				case 0:
-					fourBytes.0 = 0xFF << (8 - extraBits)
+					fourBytes.0 = UInt8(mask)
 				case 1:
-					fourBytes.1 = 0xFF << (8 - extraBits)
+					fourBytes.1 = UInt8(mask)
 				case 2:
-					fourBytes.2 = 0xFF << (8 - extraBits)
+					fourBytes.2 = UInt8(mask)
 				case 3:
-					fourBytes.3 = 0xFF << (8 - extraBits)
+					fourBytes.3 = UInt8(mask)
 				default:
 					break
 			}
 		}
-
-		self.init(RAW_staticbuff:&fourBytes)
+		self.init(RAW_staticbuff: &fourBytes)
 	}
 
 	public static func & (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
@@ -164,7 +177,7 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	
 	public var range:RangeV4 {
 		get {
-			return RangeV4(address:address, netmask:AddressV4(netmaskPrefix:_subnet_prefix.RAW_native())!)
+			return RangeV4(address:address, netmask:AddressV4(subnetPrefix:_subnet_prefix.RAW_native())!)
 		}
 	}
 	
@@ -184,7 +197,7 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		
 		self.address = address
 		self._subnet_prefix = RAW_byte(RAW_native:prefix)
-		let hasNetmaskPrefix = AddressV4(netmaskPrefix:prefix)
+		let hasNetmaskPrefix = AddressV4(subnetPrefix:prefix)
 		guard hasNetmaskPrefix != nil else {
 			return nil
 		}
