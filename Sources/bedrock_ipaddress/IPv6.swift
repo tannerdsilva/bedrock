@@ -13,66 +13,42 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:String) {
-		var initialBytes:RAW_staticbuff_storetype = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-		var byteIndex = 0
-		let segments = address.split(separator:":", omittingEmptySubsequences:false)
-		var foundCompression = false
-		withUnsafeMutablePointer(to:&initialBytes) { ptr in
-			let bytes = UnsafeMutableRawPointer(ptr).assumingMemoryBound(to:UInt8.self)
-			
-			let compressionIndex = segments.firstIndex(of:"")
-			
-			for (index, segment) in segments.enumerated() {
-				if segment.isEmpty {
-					if index == compressionIndex { // handle compression "::"
-						let remainingSegments = 8 - (segments.count - 1)
-						byteIndex += remainingSegments * 2
-						foundCompression = true
-					}
-				} else {
-					let segmentValue = UInt16(segment, radix: 16)
-					guard segmentValue != nil else {
-						return
-					}
-					bytes[byteIndex] = UInt8(segmentValue! >> 8)
-					bytes[byteIndex + 1] = UInt8(segmentValue! & 0xFF)
-					byteIndex += 2
-				}
-			}
-		}
-		if byteIndex != 16 && !foundCompression {
+		var addressv6BE = in6_addr()
+		guard inet_pton(AF_INET6, address, &addressv6BE) == 1 else {
 			return nil
 		}
-		self = Self(RAW_staticbuff:&initialBytes)
+		self = .init(RAW_staticbuff:&addressv6BE.__in6_u.__u6_addr8)
 	}
 
 	public init?(subnetPrefix netmaskPrefix: UInt8) {
 		guard netmaskPrefix <= 128 else {
 			return nil
 		}
-		var sixteenBytes:RAW_staticbuff_storetype
+
+		var sixteenBytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
 		let fullBytes = Int(netmaskPrefix / 8)
 		switch fullBytes {
-			case 15: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
-			case 14: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0)
-			case 13: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0)
-			case 12: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0)
-			case 11: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0)
-			case 10: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0)
-			case 9: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0)
-			case 8: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0)
-			case 7: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 6: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 5: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 4: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 3: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 2: sixteenBytes = (0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 1: sixteenBytes = (0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			case 0: sixteenBytes = (0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-			default: fatalError()
+			case 15: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0)
+			case 14: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0)
+			case 13: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0)
+			case 12: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0)
+			case 11: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0)
+			case 10: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0)
+			case 9: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0)
+			case 8: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 7: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 6: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 5: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 4: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 3: sixteenBytes = (0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 2: sixteenBytes = (0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 1: sixteenBytes = (0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			case 0: sixteenBytes = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+			default: fatalError() // should never happen with the guard above
 		}
+
 		let extraBits = Int(netmaskPrefix % 8)
-		if extraBits > 0 && fullBytes < 16 {
+		if extraBits > 0 {
 			let mask = (0xFF << (8 - extraBits)) & 0xFF
 			switch fullBytes {
 				case 0: sixteenBytes.0 = UInt8(mask)
@@ -94,6 +70,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 				default: break
 			}
 		}
+
 		self = Self(RAW_staticbuff: &sixteenBytes)
 	}
 
@@ -131,9 +108,21 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension AddressV6:CustomDebugStringConvertible {
+extension AddressV6:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
 		return String(self)
+	}
+	public init(from decoder:Decoder) throws {
+		let container = try decoder.singleValueContainer()
+		let address = try container.decode(String.self)
+		guard let addressv6 = AddressV6(address) else {
+			throw DecodingError.dataCorruptedError(in:container, debugDescription:"Invalid IPv6 address")
+		}
+		self = addressv6
+	}
+	public func encode(to encoder:Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode(String(self))
 	}
 }
 
@@ -141,9 +130,10 @@ extension AddressV6:CustomDebugStringConvertible {
 extension String {
 	public init(_ address:AddressV6) {
 		self = address.RAW_access_staticbuff({
-			let bytes = $0.assumingMemoryBound(to:UInt8.self)
-			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:40)
-			guard inet_ntop(AF_INET6, bytes, stringBuffer.baseAddress, 40) != nil else {
+			var transactable = in6_addr()
+			transactable.__in6_u.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
+			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
+			guard inet_ntop(AF_INET6, &transactable, stringBuffer.baseAddress, UInt32(INET6_ADDRSTRLEN)) != nil else {
 				fatalError("ipv6 address could not be string encoded")
 			}
 			return String(cString:stringBuffer.baseAddress!)
@@ -248,8 +238,20 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension NetworkV6:CustomDebugStringConvertible {
+extension NetworkV6:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
 		return "\(address)/\(subnetPrefix)"
+	}
+	public init(from decoder:Decoder) throws {
+		let container = try decoder.singleValueContainer()
+		let cidr = try container.decode(String.self)
+		guard let network = NetworkV6(cidr) else {
+			throw DecodingError.dataCorruptedError(in:container, debugDescription:"Invalid IPv6 CIDR string")
+		}
+		self = network
+	}
+	public func encode(to encoder:Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode("\(address)/\(subnetPrefix)")
 	}
 }

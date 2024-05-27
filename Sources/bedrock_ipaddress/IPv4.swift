@@ -98,9 +98,21 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension AddressV4:CustomDebugStringConvertible {
+extension AddressV4:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
 		return String(self)
+	}
+	public init(from decoder:Decoder) throws {
+		let container = try decoder.singleValueContainer()
+		let addressString = try container.decode(String.self)
+		guard let address = AddressV4(addressString) else {
+			throw DecodingError.dataCorruptedError(in:container, debugDescription:"Invalid IPv4 address")
+		}
+		self = address
+	}
+	public func encode(to encoder:Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode(String(self))
 	}
 }
 
@@ -212,8 +224,20 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension NetworkV4:CustomDebugStringConvertible {
+extension NetworkV4:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
 		return "\(address)/\(subnetPrefix)"
+	}
+	public init(from decoder:Decoder) throws {
+		let container = try decoder.singleValueContainer()
+		let cidr = try container.decode(String.self)
+		guard let network = NetworkV4(cidr) else {
+			throw DecodingError.dataCorruptedError(in:container, debugDescription:"Invalid IPv4 network")
+		}
+		self = network
+	}
+	public func encode(to encoder:Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode("\(address)/\(subnetPrefix)")
 	}
 }
