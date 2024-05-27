@@ -10,28 +10,35 @@ let package = Package(
         .library(
             name: "bedrock",
             targets: ["bedrock"]),
-		.library(name:"bedrock-ipaddress", targets: ["bedrock-ipaddress"])
+		.library(name:"bedrock_ipaddress", targets: ["bedrock_ipaddress"]),
+		.library(name:"bedrock_scheduler_service", targets: ["bedrock_scheduler_service"])
     ],
     dependencies: [
-        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", revision:"80cc709cb67e6bb6bd0e0ab7cc79f324c7fc4927"),
-        .package(url:"https://github.com/tannerdsilva/rawdog.git", from:"8.1.0"),
+        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", branch:"v3-dev"),
+        .package(url:"https://github.com/tannerdsilva/rawdog.git", from:"9.0.0"),
   		.package(url:"https://github.com/apple/swift-argument-parser.git", from:"1.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", from:"1.0.0"),
   		.package(url:"https://github.com/swift-server/swift-service-lifecycle.git", from:"2.4.0")
     ],
     targets: [
-		.target(name:"bedrock-ipaddress", dependencies: [
+		.target(name:"bedrock_ipaddress", dependencies: [
 			.product(name:"RAW", package:"rawdog"),
 			.product(name:"QuickLMDB", package:"QuickLMDB")
 		]),
+		.target(name:"bedrock_scheduler_service", dependencies: [
+			.product(name:"QuickLMDB", package:"QuickLMDB"),
+			.product(name:"Logging", package:"swift-log"),
+			.product(name:"ServiceLifecycle", package:"swift-service-lifecycle"),
+			.product(name:"RAW", package:"rawdog"),
+			"bedrock"
+		]),
+
         .target(
             name: "bedrock",
             dependencies: [
-            	"QuickLMDB",
             	.product(name:"RAW", package:"rawdog"),
             	.product(name:"ArgumentParser", package:"swift-argument-parser"),
             	.product(name:"Logging", package:"swift-log"),
-            	.product(name:"ServiceLifecycle", package:"swift-service-lifecycle"),
             	"cbedrock"
             ]),
         .target(
@@ -39,6 +46,6 @@ let package = Package(
         ),
         .testTarget(
             name: "bedrockTests",
-            dependencies: ["bedrock", "cbedrock", "bedrock-ipaddress"]),
+            dependencies: ["bedrock", "cbedrock", "bedrock_ipaddress"]),
     ]
 )

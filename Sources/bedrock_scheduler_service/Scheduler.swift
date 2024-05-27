@@ -3,7 +3,7 @@ import QuickLMDB
 import Logging
 import struct Foundation.URL
 import ServiceLifecycle
-// import cbedrock
+import bedrock
 
 #if os(Linux)
 import Glibc
@@ -25,13 +25,13 @@ fileprivate struct EncodedPID:Equatable {
 @MDB_comparable()
 fileprivate struct EncodedDuration {}
 
-@RAW_staticbuff(bytes:1)
-@RAW_staticbuff_fixedwidthinteger_type<UInt8>(bigEndian:true)
-fileprivate struct EncodedByte {}
-
-@RAW_convertible_string_type<EncodedByte>(UTF8.self)
+@RAW_convertible_string_type<RAW_byte>(UTF8.self)
 @MDB_comparable()
-fileprivate struct EncodedString {}
+fileprivate struct EncodedString:ExpressibleByStringLiteral, CustomDebugStringConvertible {
+	fileprivate var debugDescription:String {
+		return String(self)
+	}
+}
 
 @RAW_staticbuff(bytes:8)
 @RAW_staticbuff_binaryfloatingpoint_type<Double>()
@@ -95,14 +95,11 @@ public struct Scheduler:Sendable {
 		let envSize = size_t(targetURL.getFileSize()) + size_t(1.28e6)
 		let makeEnv = try Environment(path:targetURL.path, flags:[.noSubDir, .noReadAhead], mapSize:envSize, maxReaders:32, maxDBs:3, mode:[.ownerReadWriteExecute, .groupRead, .groupExecute])
 		let someTrans = try Transaction(env:makeEnv, readOnly:false)
-		let pidDB = try Database.Strict<EncodedString, EncodedPID>(env:makeEnv, name:Databases.scheduleTasks.rawValue, flags:[.create], tx:someTrans)
-		let intervalDB = try Database.Strict<EncodedString, EncodedDuration>(env:makeEnv, name:Databases.scheduleIntervals.rawValue, flags:[.create], tx:someTrans)
-		let lastFireDateDB = try Database.Strict<EncodedString, EncodedDate>(env:makeEnv, name:Databases.scheduleLastFireDate.rawValue, flags:[.create], tx:someTrans)
+		self.schedule_pid = try Database.Strict<EncodedString, EncodedPID>(env:makeEnv, name:Databases.scheduleTasks.rawValue, flags:[.create], tx:someTrans)
+		self.schedule_timeInterval = try Database.Strict<EncodedString, EncodedDuration>(env:makeEnv, name:Databases.scheduleIntervals.rawValue, flags:[.create], tx:someTrans)
+		self.schedule_lastFireDate = try Database.Strict<EncodedString, EncodedDate>(env:makeEnv, name:Databases.scheduleLastFireDate.rawValue, flags:[.create], tx:someTrans)
 		try someTrans.commit()
 		self.env = makeEnv
-		self.schedule_pid = pidDB
-		self.schedule_timeInterval = intervalDB
-		self.schedule_lastFireDate = lastFireDateDB
 		self.log = log
 		log?.notice("instance init", metadata:["path":"'\(targetURL.path)'"])
 	}
@@ -118,6 +115,7 @@ public struct Scheduler:Sendable {
 		var mutateLogger = log
 		mutateLogger?[metadataKey:"name"] = "\(name)"
 		mutateLogger?[metadataKey:"interval"] = "\(interval)s"
+		mutateLogger?[metadataKey:"pid"] = "\(myPID.RAW_native())"
 		mutateLogger?.notice("task loop launched")
 		defer {
 			mutateLogger?.notice("task loop ended")
@@ -139,7 +137,7 @@ public struct Scheduler:Sendable {
 				}
 				try schedule_pid.setEntry(key:encodedName, value:myPID, flags:[], tx:newTransaction)
 			}
-			mutateLogger?.debug("task PID successfully assigned: '\(myPID.RAW_native())'")
+			mutateLogger?.debug("PID successfully documented as the runner of the task")
 			try schedule_timeInterval.setEntry(key:encodedName, value:encodedInterval, flags:[], tx:newTransaction)
 			do {
 				let lastFireDate = try schedule_lastFireDate.loadEntry(key:encodedName, tx:newTransaction)

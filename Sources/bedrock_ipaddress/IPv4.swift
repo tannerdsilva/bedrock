@@ -30,21 +30,24 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		guard netmaskPrefix <= 32 else {
 			return nil
 		}
-		var bytes = [UInt8](repeating:0, count:4)
-		let fullBytes = Int(netmaskPrefix / 8)
+		var fourBytes:(UInt8, UInt8, UInt8, UInt8) = (0xFF, 0xFF, 0xFF, 0xFF)
 		let extraBits = Int(netmaskPrefix % 8)
-
-		// Fill full byte sections of the netmask
-		for i in 0..<fullBytes {
-			bytes[i] = 0xFF
-		}
-
-		// Set the remaining bits in the next byte
 		if extraBits > 0 {
-			bytes[fullBytes] = 0xFF << (8 - extraBits)
+			switch Int(netmaskPrefix / 8) {
+				case 0:
+					fourBytes.0 = 0xFF << (8 - extraBits)
+				case 1:
+					fourBytes.1 = 0xFF << (8 - extraBits)
+				case 2:
+					fourBytes.2 = 0xFF << (8 - extraBits)
+				case 3:
+					fourBytes.3 = 0xFF << (8 - extraBits)
+				default:
+					break
+			}
 		}
 
-		self.init(RAW_staticbuff:&bytes)
+		self.init(RAW_staticbuff:&fourBytes)
 	}
 
 	public static func & (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
@@ -159,10 +162,10 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 	
 	public init?(_ cidr:String) {
-		let parts = cidr.split(separator:"/").map(String.init)
+		let parts = cidr.split(separator:"/")
 		guard parts.count == 2,
-			let address = AddressV4(parts[0]),
-			let prefix = UInt8(parts[1]),
+			let address = AddressV4(String(parts[0])),
+			let prefix = UInt8(String(parts[1])),
 			prefix <= 32 else {
 			return nil
 		}

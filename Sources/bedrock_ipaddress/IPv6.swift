@@ -13,53 +13,64 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:String) {
-		var bytes = [UInt8](repeating: 0, count: 16)
-		let segments = address.split(separator: ":", omittingEmptySubsequences: false)
+		var initialBytes:RAW_staticbuff_storetype = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 		var byteIndex = 0
+		let segments = address.split(separator:":", omittingEmptySubsequences:false)
 		var foundCompression = false
-		
-		// Determine where the compression index is (if it exists)
-		let compressionIndex = segments.firstIndex(of: "")
-		
-		for (index, segment) in segments.enumerated() {
-			if segment.isEmpty {
-				if index == compressionIndex { // handle compression "::"
-					let remainingSegments = 8 - (segments.count - 1)
-					byteIndex += remainingSegments * 2
-					foundCompression = true
+		withUnsafeMutablePointer(to:&initialBytes) { ptr in
+			let bytes = UnsafeMutableRawPointer(ptr).assumingMemoryBound(to:UInt8.self)
+			
+			let compressionIndex = segments.firstIndex(of:"")
+			
+			for (index, segment) in segments.enumerated() {
+				if segment.isEmpty {
+					if index == compressionIndex { // handle compression "::"
+						let remainingSegments = 8 - (segments.count - 1)
+						byteIndex += remainingSegments * 2
+						foundCompression = true
+					}
+				} else {
+					let segmentValue = UInt16(segment, radix: 16)
+					guard segmentValue != nil else {
+						return
+					}
+					bytes[byteIndex] = UInt8(segmentValue! >> 8)
+					bytes[byteIndex + 1] = UInt8(segmentValue! & 0xFF)
+					byteIndex += 2
 				}
-			} else {
-				guard let segmentValue = UInt16(segment, radix: 16) else {
-					return nil // invalid hexadecimal segment
-				}
-				bytes[byteIndex] = UInt8(segmentValue >> 8)
-				bytes[byteIndex + 1] = UInt8(segmentValue & 0xFF)
-				byteIndex += 2
 			}
 		}
-		
-		// If no compression was found and byteIndex is not at the end, it's an error
 		if byteIndex != 16 && !foundCompression {
 			return nil
 		}
-
-		self = Self(RAW_staticbuff:&bytes)
+		self = Self(RAW_staticbuff:&initialBytes)
 	}
 
 	public init?(netmaskPrefix:UInt8) {
-		guard netmaskPrefix <= 128 else {
-			return nil
-		}
-		var bytes = [UInt8](repeating:0, count:16)
+		// sixteen byte tuple initialized to 0xFF for each byte
+		var sixteenBytes:RAW_staticbuff_storetype = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
 		let fullBytes = Int(netmaskPrefix / 8)
 		let extraBits = Int(netmaskPrefix % 8)
-		for i in 0..<fullBytes {
-			bytes[i] = 0xFF
+		switch fullBytes {
+			case 15: sixteenBytes.15 = 0xFF << (8 - extraBits)
+			case 14: sixteenBytes.14 = 0xFF << (8 - extraBits)
+			case 13: sixteenBytes.13 = 0xFF << (8 - extraBits)
+			case 12: sixteenBytes.12 = 0xFF << (8 - extraBits)
+			case 11: sixteenBytes.11 = 0xFF << (8 - extraBits)
+			case 10: sixteenBytes.10 = 0xFF << (8 - extraBits)
+			case 9: sixteenBytes.9 = 0xFF << (8 - extraBits)
+			case 8: sixteenBytes.8 = 0xFF << (8 - extraBits)
+			case 7: sixteenBytes.7 = 0xFF << (8 - extraBits)
+			case 6: sixteenBytes.6 = 0xFF << (8 - extraBits)
+			case 5: sixteenBytes.5 = 0xFF << (8 - extraBits)
+			case 4: sixteenBytes.4 = 0xFF << (8 - extraBits)
+			case 3: sixteenBytes.3 = 0xFF << (8 - extraBits)
+			case 2: sixteenBytes.2 = 0xFF << (8 - extraBits)
+			case 1: sixteenBytes.1 = 0xFF << (8 - extraBits)
+			case 0: sixteenBytes.0 = 0xFF << (8 - extraBits)
+			default: return nil
 		}
-		if extraBits > 0 {
-			bytes[fullBytes] = 0xFF << (8 - extraBits)
-		}
-		self = Self(RAW_staticbuff:&bytes)
+		self = Self(RAW_staticbuff:&sixteenBytes)
 	}
 
 	public static func & (lhs:AddressV6, rhs:AddressV6) -> AddressV6 {
@@ -98,18 +109,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 
 extension String {
-	public init(address4 address:AddressV4) {
-		self = address.RAW_access_staticbuff({
-			let bytes = $0.assumingMemoryBound(to:UInt8.self)
-			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:16)
-			guard inet_ntop(AF_INET, bytes, stringBuffer.baseAddress, 16) != nil else {
-				fatalError("ipv4 address could not be string encoded")
-			}
-			return String(cString:stringBuffer.baseAddress!)
-		})
-	
-	}
-	public init(address6 address:AddressV6) {
+	public init(_ address:AddressV6) {
 		self = address.RAW_access_staticbuff({
 			let bytes = $0.assumingMemoryBound(to:UInt8.self)
 			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:40)
