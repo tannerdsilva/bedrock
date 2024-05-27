@@ -170,7 +170,7 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 	public let address:AddressV6
 	fileprivate let _subnet_prefix:RAW_byte
-	public var subnet_prefix:UInt8 {
+	public var subnetPrefix:UInt8 {
 		get {
 			return _subnet_prefix.RAW_native()
 		}
