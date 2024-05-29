@@ -100,7 +100,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 extension AddressV4:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
-		return String(self)
+		return "AddressV4(\(String(self))"
 	}
 	public init(from decoder:Decoder) throws {
 		let container = try decoder.singleValueContainer()
@@ -168,12 +168,9 @@ public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension RangeV4:CustomDebugStringConvertible, LosslessStringConvertible {
+extension RangeV4:CustomDebugStringConvertible {
 	public var debugDescription:String {
-		return "\(lowerBound)-\(upperBound)"
-	}
-	public var description:String {
-		return "\(lowerBound)-\(upperBound)"
+		return "RangeV4(\(String(lowerBound))-\(String(upperBound)))"
 	}
 }
 
@@ -236,7 +233,7 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 extension NetworkV4:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
-		return "\(address)/\(subnetPrefix)"
+		return "NetworkV4(\(String(address))/\(subnetPrefix))"
 	}
 	public init(from decoder:Decoder) throws {
 		let container = try decoder.singleValueContainer()

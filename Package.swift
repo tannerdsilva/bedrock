@@ -10,7 +10,7 @@ let package = Package(
         .library(
             name: "bedrock",
             targets: ["bedrock"]),
-		.library(name:"bedrock_ipaddress", targets: ["bedrock_ipaddress"]),
+		.library(name:"bedrock_ip", targets: ["bedrock_ip"]),
 		.library(name:"bedrock_scheduler_service", targets: ["bedrock_scheduler_service"])
     ],
     dependencies: [
@@ -21,7 +21,7 @@ let package = Package(
   		.package(url:"https://github.com/swift-server/swift-service-lifecycle.git", from:"2.4.0")
     ],
     targets: [
-		.target(name:"bedrock_ipaddress", dependencies: [
+		.target(name:"bedrock_ip", dependencies: [
 			.product(name:"RAW", package:"rawdog"),
 			.product(name:"QuickLMDB", package:"QuickLMDB")
 		]),
@@ -46,6 +46,6 @@ let package = Package(
         ),
         .testTarget(
             name: "bedrockTests",
-            dependencies: ["bedrock", "cbedrock", "bedrock_ipaddress"]),
+            dependencies: ["bedrock", "cbedrock", "bedrock_ip"]),
     ]
 )

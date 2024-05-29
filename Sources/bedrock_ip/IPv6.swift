@@ -109,13 +109,9 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension AddressV6:CustomDebugStringConvertible, Codable, LosslessStringConvertible {
+extension AddressV6:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
-		return String(self)
-	}
-
-	public var description:String {
-		return String(self)
+		return "AddressV6(\"\(String(self))\")"
 	}
 
 	public init(from decoder:Decoder) throws {
@@ -191,12 +187,9 @@ public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension RangeV6:CustomDebugStringConvertible, LosslessStringConvertible {
+extension RangeV6:CustomDebugStringConvertible {
 	public var debugDescription:String {
-		return "\(lowerBound)-\(upperBound)"
-	}
-	public var description:String {
-		return "\(lowerBound)-\(upperBound)"
+		return "RangeV6(\"\(String(lowerBound))-\(String(upperBound))\")"
 	}
 }
 
@@ -256,13 +249,9 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension NetworkV6:CustomDebugStringConvertible, Codable, LosslessStringConvertible {
-	public var description: String {
-		return "\(address)/\(subnetPrefix)"
-	}
-
+extension NetworkV6:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
-		return "\(address)/\(subnetPrefix)"
+		return "NetworkV6(\"\(String(address))/\(subnetPrefix)\")"
 	}
 
 	public init(from decoder:Decoder) throws {
