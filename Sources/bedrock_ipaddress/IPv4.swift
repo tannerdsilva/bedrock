@@ -30,7 +30,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		guard netmaskPrefix <= 32 else {
 			return nil
 		}
-		var fourBytes:(UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0)
+		var fourBytes:RAW_staticbuff_storetype = (0, 0, 0, 0)
 		let fullByteCount = Int(netmaskPrefix / 8)
 		switch fullByteCount {
 			case 1:
@@ -168,8 +168,11 @@ public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension RangeV4:CustomDebugStringConvertible {
+extension RangeV4:CustomDebugStringConvertible, LosslessStringConvertible {
 	public var debugDescription:String {
+		return "\(lowerBound)-\(upperBound)"
+	}
+	public var description:String {
 		return "\(lowerBound)-\(upperBound)"
 	}
 }
@@ -180,10 +183,17 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV4
+
 	fileprivate let _subnet_prefix:RAW_byte
 	public var subnetPrefix:UInt8 {
 		get {
 			return _subnet_prefix.RAW_native()
+		}
+	}
+
+	public var subnetMask:AddressV4 {
+		get {
+			return AddressV4(subnetPrefix:_subnet_prefix.RAW_native())!
 		}
 	}
 	

@@ -25,7 +25,8 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 			return nil
 		}
 
-		var sixteenBytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
+		// this logic could be done with a lot less code but it would require initializing and writing to bytes multiple times, whereas this way we only write to bytes once*
+		var sixteenBytes:(UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
 		let fullBytes = Int(netmaskPrefix / 8)
 		switch fullBytes {
 			case 15: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0)
@@ -67,7 +68,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 				case 13: sixteenBytes.13 = UInt8(mask)
 				case 14: sixteenBytes.14 = UInt8(mask)
 				case 15: sixteenBytes.15 = UInt8(mask)
-				default: break
+				default: fatalError() // should never happen with the guard above and the switch above
 			}
 		}
 
@@ -108,18 +109,24 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension AddressV6:CustomDebugStringConvertible, Codable {
+extension AddressV6:CustomDebugStringConvertible, Codable, LosslessStringConvertible {
 	public var debugDescription:String {
 		return String(self)
 	}
+
+	public var description:String {
+		return String(self)
+	}
+
 	public init(from decoder:Decoder) throws {
 		let container = try decoder.singleValueContainer()
 		let address = try container.decode(String.self)
 		guard let addressv6 = AddressV6(address) else {
-			throw DecodingError.dataCorruptedError(in:container, debugDescription:"Invalid IPv6 address")
+			throw DecodingError.dataCorruptedError(in:container, debugDescription:"invalid IPv6 address")
 		}
 		self = addressv6
 	}
+	
 	public func encode(to encoder:Encoder) throws {
 		var container = encoder.singleValueContainer()
 		try container.encode(String(self))
@@ -147,6 +154,7 @@ public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 	public let lowerBound:AddressV6
 	public let upperBound:AddressV6
+
 	public init(lower:AddressV6, upper:AddressV6) {
 		self.lowerBound = lower
 		self.upperBound = upper
@@ -183,8 +191,11 @@ public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension RangeV6:CustomDebugStringConvertible {
+extension RangeV6:CustomDebugStringConvertible, LosslessStringConvertible {
 	public var debugDescription:String {
+		return "\(lowerBound)-\(upperBound)"
+	}
+	public var description:String {
 		return "\(lowerBound)-\(upperBound)"
 	}
 }
@@ -196,9 +207,16 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 
 	public let address:AddressV6
 	fileprivate let _subnet_prefix:RAW_byte
+	
 	public var subnetPrefix:UInt8 {
 		get {
 			return _subnet_prefix.RAW_native()
+		}
+	}
+	
+	public var subnetMask:AddressV6 {
+		get {
+			return AddressV6(subnetPrefix:_subnet_prefix.RAW_native())!
 		}
 	}
 	
@@ -238,15 +256,20 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension NetworkV6:CustomDebugStringConvertible, Codable {
+extension NetworkV6:CustomDebugStringConvertible, Codable, LosslessStringConvertible {
+	public var description: String {
+		return "\(address)/\(subnetPrefix)"
+	}
+
 	public var debugDescription:String {
 		return "\(address)/\(subnetPrefix)"
 	}
+
 	public init(from decoder:Decoder) throws {
 		let container = try decoder.singleValueContainer()
 		let cidr = try container.decode(String.self)
 		guard let network = NetworkV6(cidr) else {
-			throw DecodingError.dataCorruptedError(in:container, debugDescription:"Invalid IPv6 CIDR string")
+			throw DecodingError.dataCorruptedError(in:container, debugDescription:"invalid IPv6 CIDR string")
 		}
 		self = network
 	}
