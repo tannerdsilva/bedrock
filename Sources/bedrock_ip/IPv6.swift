@@ -109,7 +109,11 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension AddressV6:CustomDebugStringConvertible, Codable {
+extension AddressV6:CustomDebugStringConvertible, Codable, LosslessStringConvertible {
+	public var description:String {
+		return String(self)
+	}
+	
 	public var debugDescription:String {
 		return "AddressV6(\"\(String(self))\")"
 	}
@@ -272,7 +276,11 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 	}
 }
 
-extension NetworkV6:CustomDebugStringConvertible, Codable {
+extension NetworkV6:CustomDebugStringConvertible, Codable, LosslessStringConvertible {
+	public var description:String {
+		return "\(String(address))/\(subnetPrefix)"
+	}
+
 	public var debugDescription:String {
 		return "NetworkV6(\"\(String(address))/\(subnetPrefix)\")"
 	}
