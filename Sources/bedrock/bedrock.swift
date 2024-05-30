@@ -1,15 +1,15 @@
 import Logging
-import Foundation
 
+#if os(Linux)
+import Glibc
+#elseif os(macOS)
+import Darwin
+#endif
 
 /// builds a logger with a label and pre-configured log level based on the build mode of the codebase
-public func makeDefaultLogger(label:String) -> Logger {
+public func makeDefaultLogger(label:consuming String, logLevel:consuming Logger.Level) -> Logger {
 	var makeLogger = Logger(label:label)
-	#if DEBUG
-		makeLogger.logLevel = .debug
-	#else
-		makeLogger.logLevel = .warning
-	#endif
+	makeLogger.logLevel = logLevel
 	return makeLogger
 }
 
