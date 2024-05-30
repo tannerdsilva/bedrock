@@ -12,7 +12,7 @@ let package = Package(
 		.library(name:"bedrock_scheduler_service", targets: ["bedrock_scheduler_service"])
     ],
     dependencies: [
-        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", branch:"v3-dev"),
+        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", "3.0.0"..<"4.0.0"),
         .package(url:"https://github.com/tannerdsilva/rawdog.git", "10.1.0"..<"11.0.0"),
   		.package(url:"https://github.com/apple/swift-argument-parser.git", "1.0.0"..<"2.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", "1.0.0"..<"2.0.0"),
