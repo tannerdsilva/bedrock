@@ -1,7 +1,7 @@
 import RAW
 import QuickLMDB
 
-public enum Address:Hashable, Equatable, Comparable, Codable, LosslessStringConvertible {
+public enum Address:Sendable, Hashable, Equatable, Comparable, Codable, LosslessStringConvertible {
     public var description:String {
 		switch self {
 			case .v4(let v4):
@@ -63,7 +63,7 @@ public enum Address:Hashable, Equatable, Comparable, Codable, LosslessStringConv
 	case v6(AddressV6)
 }
 
-public enum Network:Hashable, Equatable, Comparable, Codable, LosslessStringConvertible {
+public enum Network:Sendable, Hashable, Equatable, Comparable, Codable, LosslessStringConvertible {
 	public var description:String {
 		switch self {
 			case .v4(let v4):
