@@ -14,7 +14,7 @@ import Darwin
 @RAW_staticbuff(bytes:4)
 @RAW_staticbuff_fixedwidthinteger_type<pid_t>(bigEndian:true)
 @MDB_comparable()
-fileprivate struct EncodedPID:Equatable {
+fileprivate struct EncodedPID:Equatable, Sendable {
 	fileprivate static func currentPID() -> EncodedPID {
 		return EncodedPID(RAW_native:getpid())
 	}
@@ -23,11 +23,11 @@ fileprivate struct EncodedPID:Equatable {
 @RAW_staticbuff(bytes:8)
 @RAW_staticbuff_binaryfloatingpoint_type<Double>()
 @MDB_comparable()
-fileprivate struct EncodedDuration {}
+fileprivate struct EncodedDuration:Sendable {}
 
 @RAW_convertible_string_type<RAW_byte>(UTF8.self)
 @MDB_comparable()
-fileprivate struct EncodedString:ExpressibleByStringLiteral, CustomDebugStringConvertible {
+fileprivate struct EncodedString:ExpressibleByStringLiteral, CustomDebugStringConvertible, Sendable {
 	fileprivate var debugDescription:String {
 		return String(self)
 	}
@@ -36,7 +36,7 @@ fileprivate struct EncodedString:ExpressibleByStringLiteral, CustomDebugStringCo
 @RAW_staticbuff(bytes:8)
 @RAW_staticbuff_binaryfloatingpoint_type<Double>()
 @MDB_comparable()
-fileprivate struct EncodedDate:CustomDebugStringConvertible {
+fileprivate struct EncodedDate:CustomDebugStringConvertible, Sendable {
     fileprivate var debugDescription: String {
 		return "\(Date(self).timeIntervalSinceUnixDate())"
 	}

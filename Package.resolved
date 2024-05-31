@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tannerdsilva/QuickLMDB.git",
       "state" : {
-        "revision" : "588c7fb1c4a5ac68890f77323d3ab4e162e9f9fc",
-        "version" : "3.0.0"
+        "revision" : "016883a3135c9f864114f982703b17c2788b5b47",
+        "version" : "4.0.0"
       }
     },
     {
@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/tannerdsilva/rawdog.git",
       "state" : {
-        "revision" : "fcd211aa565a6cf261b9575e2cecd585e4665892",
-        "version" : "10.1.0"
+        "revision" : "b3dbb7b7f96d0d9f09d26e75e7c4312c94d45166",
+        "version" : "11.0.0"
       }
     },
     {

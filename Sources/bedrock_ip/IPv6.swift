@@ -9,7 +9,7 @@ import Darwin
 
 @RAW_staticbuff(bytes:16)
 @MDB_comparable()
-public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:String) {
@@ -149,7 +149,7 @@ extension String {
 }
 
 @RAW_staticbuff(concat:AddressV6, AddressV6)
-public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let lowerBound:AddressV6
@@ -199,7 +199,7 @@ extension RangeV6:CustomDebugStringConvertible {
 
 @RAW_staticbuff(concat:AddressV6, RAW_byte)
 @MDB_comparable()
-public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV6
@@ -258,8 +258,8 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		let boundLHS = lhs_data.assumingMemoryBound(to:Self.self)
 		let boundRHS = rhs_data.assumingMemoryBound(to:Self.self)
 
-		return withUnsafePointer(to:(boundLHS.pointer(to: \.address)!.pointee & boundLHS.pointer(to: \.subnetMask)!.pointee)) { lhsMasked in
-			return withUnsafePointer(to:(boundRHS.pointer(to: \.address)!.pointee & boundRHS.pointer(to: \.subnetMask)!.pointee)) { rhsMasked in
+		return withUnsafePointer(to:(boundLHS.pointer(to: \.address)!.pointee & boundLHS.pointee.subnetMask)) { lhsMasked in
+			return withUnsafePointer(to:(boundRHS.pointer(to: \.address)!.pointee & boundRHS.pointee.subnetMask)) { rhsMasked in
 				
 				// lhs and rhs are now masked to the same subnet, compare them.
 
@@ -267,7 +267,7 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 				switch cmpResult {
 					case 0:
 						// matching masked addresses, compare subnet prefixes
-						return Int32(boundLHS.pointer(to: \.subnetPrefix)!.pointee) - Int32(boundRHS.pointer(to: \.subnetPrefix)!.pointee)
+						return Int32(boundLHS.pointee.subnetPrefix) - Int32(boundRHS.pointee.subnetPrefix)
 					default:
 						return Int32(cmpResult)
 				}
