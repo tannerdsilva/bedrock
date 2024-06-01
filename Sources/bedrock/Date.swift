@@ -33,7 +33,7 @@ internal let encDate = encodingReferenceDate()
 
 /// a structure that represents a single point of time.
 /// - this structure provides no detail around timezones the date is represented in.
-@RAW_staticbuff(bytes:4)
+@RAW_staticbuff(bytes:8)
 @RAW_staticbuff_binaryfloatingpoint_type<Double>()
 @frozen public struct Date:Sendable {
 	/// initialize a new date based on the GMT timezone.

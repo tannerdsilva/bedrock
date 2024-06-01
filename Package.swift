@@ -7,19 +7,19 @@ let package = Package(
     	.macOS(.v11)
     ],
     products: [
-        .library(name:"bedrock", targets: ["bedrock"]),
-		.library(name:"bedrock_ip", targets: ["bedrock_ip"]),
-		.library(name:"bedrock_scheduler_service", targets: ["bedrock_scheduler_service"])
+        .library(name:"bedrock", targets:["bedrock"]),
+		.library(name:"bedrock_ip", targets:["bedrock_ip"]),
+		.library(name:"bedrock_scheduler_service", targets:["bedrock_scheduler_service"])
     ],
     dependencies: [
-        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", "4.0.0"..<"5.0.0"),
+        .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", "5.0.0"..<"6.0.0"),
         .package(url:"https://github.com/tannerdsilva/rawdog.git", "11.0.0"..<"12.0.0"),
   		.package(url:"https://github.com/apple/swift-argument-parser.git", "1.0.0"..<"2.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", "1.0.0"..<"2.0.0"),
   		.package(url:"https://github.com/swift-server/swift-service-lifecycle.git", "2.4.0"..<"3.0.0")
     ],
     targets: [
-		.target(name:"bedrock_ip", dependencies: [
+		.target(name:"bedrock_ip", dependencies:[
 			.product(name:"RAW", package:"rawdog"),
 			.product(name:"QuickLMDB", package:"QuickLMDB")
 		]),
@@ -30,7 +30,6 @@ let package = Package(
 			.product(name:"RAW", package:"rawdog"),
 			"bedrock"
 		]),
-
         .target(
             name: "bedrock",
             dependencies: [
