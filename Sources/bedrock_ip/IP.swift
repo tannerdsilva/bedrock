@@ -59,6 +59,39 @@ public enum Address:Sendable, Hashable, Equatable, Comparable, Codable, Lossless
 		}
 	}
 
+	public static func < (lhs:Address, rhs:Address) -> Bool {
+		switch (lhs, rhs) {
+			case (.v4(let lhs), .v4(let rhs)):
+				return lhs < rhs
+			case (.v6(let lhs), .v6(let rhs)):
+				return lhs < rhs
+			case (.v4, .v6):
+				return true
+			case (.v6, .v4):
+				return false
+		}
+	}
+
+	public static func == (lhs:Address, rhs:Address) -> Bool {
+		switch (lhs, rhs) {
+			case (.v4(let lhs), .v4(let rhs)):
+				return lhs == rhs
+			case (.v6(let lhs), .v6(let rhs)):
+				return lhs == rhs
+			default:
+				return false
+		}
+	}
+
+	public func hash(into hasher:inout Hasher) {
+		switch self {
+			case .v4(let v4):
+				hasher.combine(v4)
+			case .v6(let v6):
+				hasher.combine(v6)
+		}
+	}
+
 	case v4(AddressV4)
 	case v6(AddressV6)
 }
@@ -123,4 +156,37 @@ public enum Network:Sendable, Hashable, Equatable, Comparable, Codable, Lossless
 
 	case v4(NetworkV4)
 	case v6(NetworkV6)
+
+	public static func < (lhs:Network, rhs:Network) -> Bool {
+		switch (lhs, rhs) {
+			case (.v4(let lhs), .v4(let rhs)):
+				return lhs < rhs
+			case (.v6(let lhs), .v6(let rhs)):
+				return lhs < rhs
+			case (.v4, .v6):
+				return true
+			case (.v6, .v4):
+				return false
+		}
+	}
+
+	public static func == (lhs:Network, rhs:Network) -> Bool {
+		switch (lhs, rhs) {
+			case (.v4(let lhs), .v4(let rhs)):
+				return lhs == rhs
+			case (.v6(let lhs), .v6(let rhs)):
+				return lhs == rhs
+			default:
+				return false
+		}
+	}
+
+	public func hash(into hasher:inout Hasher) {
+		switch self {
+			case .v4(let v4):
+				hasher.combine(v4)
+			case .v6(let v6):
+				hasher.combine(v6)
+		}
+	}
 }

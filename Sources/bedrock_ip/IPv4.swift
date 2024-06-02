@@ -68,9 +68,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV4 in
 				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
 				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3])) {
-					return AddressV4(RAW_staticbuff:$0)
-				}
+				return AddressV4(RAW_staticbuff:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3]))
 			}
 		}
 	}
@@ -79,9 +77,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 	public static prefix func ~ (_ address:AddressV4) -> AddressV4 {
 		return address.RAW_access_staticbuff { ptr in
 			let bytes = ptr.assumingMemoryBound(to:UInt8.self)
-			return withUnsafePointer(to:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3])) {
-				return AddressV4(RAW_staticbuff:$0)
-			}
+			return AddressV4(RAW_staticbuff:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3]))
 		}
 	}
 
@@ -90,9 +86,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV4 in
 				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
 				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3])) {
-					return AddressV4(RAW_staticbuff:$0)
-				}
+				return AddressV4(RAW_staticbuff:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3]))
 			}
 		}
 	}
@@ -255,6 +249,12 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 				}
 			}
 		}
+	}
+
+	public func hash(into hasher:inout Hasher) {
+		// mask the address to the subnet
+		hasher.combine(address & subnetMask)
+		hasher.combine(subnetPrefix)
 	}
 }
 
