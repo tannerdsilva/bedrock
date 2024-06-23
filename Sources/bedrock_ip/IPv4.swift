@@ -3,7 +3,7 @@ import QuickLMDB
 
 @RAW_staticbuff(bytes:4)
 @MDB_comparable()
-public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:String) {
@@ -60,7 +60,7 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 					break
 			}
 		}
-		self.init(RAW_staticbuff: &fourBytes)
+		self.init(RAW_staticbuff:fourBytes)
 	}
 
 	public static func & (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
@@ -127,7 +127,7 @@ extension String {
 }
 
 @RAW_staticbuff(concat:AddressV4, AddressV4)
-public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let lowerBound:AddressV4
@@ -176,7 +176,7 @@ extension RangeV4:CustomDebugStringConvertible {
 
 @RAW_staticbuff(concat:AddressV4, RAW_byte)
 @MDB_comparable()
-public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV4

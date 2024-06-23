@@ -9,7 +9,7 @@ import Darwin
 
 @RAW_staticbuff(bytes:16)
 @MDB_comparable()
-public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:String) {
@@ -17,7 +17,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 		guard inet_pton(AF_INET6, address, &addressv6BE) == 1 else {
 			return nil
 		}
-		self = .init(RAW_staticbuff:&addressv6BE.__in6_u.__u6_addr8)
+		self = .init(RAW_staticbuff:&addressv6BE.__u6_addr.__u6_addr8)
 	}
 
 	public init?(subnetPrefix netmaskPrefix: UInt8) {
@@ -72,7 +72,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
 			}
 		}
 
-		self = Self(RAW_staticbuff: &sixteenBytes)
+		self = Self(RAW_staticbuff:sixteenBytes)
 	}
 
 	public static func & (lhs:AddressV6, rhs:AddressV6) -> AddressV6 {
@@ -134,7 +134,7 @@ extension String {
 	public init(_ address:AddressV6) {
 		self = address.RAW_access_staticbuff({
 			var transactable = in6_addr()
-			transactable.__in6_u.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
+			transactable.__u6_addr.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
 			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
 			guard inet_ntop(AF_INET6, &transactable, stringBuffer.baseAddress, UInt32(INET6_ADDRSTRLEN)) != nil else {
 				fatalError("ipv6 address could not be string encoded")
@@ -145,7 +145,7 @@ extension String {
 }
 
 @RAW_staticbuff(concat:AddressV6, AddressV6)
-public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let lowerBound:AddressV6
@@ -195,7 +195,7 @@ extension RangeV6:CustomDebugStringConvertible {
 
 @RAW_staticbuff(concat:AddressV6, RAW_byte)
 @MDB_comparable()
-public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable {
+public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public let address:AddressV6
