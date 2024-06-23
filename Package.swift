@@ -14,7 +14,6 @@ let package = Package(
     dependencies: [
         .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", branch:"hacklash"),
         .package(url:"https://github.com/tannerdsilva/rawdog.git", branch:"hacklash"),
-  		.package(url:"https://github.com/apple/swift-argument-parser.git", "1.0.0"..<"2.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", "1.0.0"..<"2.0.0"),
   		.package(url:"https://github.com/swift-server/swift-service-lifecycle.git", "2.4.0"..<"3.0.0")
     ],
