@@ -9,7 +9,6 @@ let package = Package(
     products: [
         .library(name:"bedrock", targets: ["bedrock"]),
 		.library(name:"bedrock_ip", targets: ["bedrock_ip"]),
-		// .library(name:"bedrock_scheduler_service", targets: ["bedrock_scheduler_service"])
     ],
     dependencies: [
         .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", "9.0.0"..<"10.0.0"),
@@ -44,7 +43,8 @@ let package = Package(
             name: "BedrockTestSuite",
             dependencies: [
             	"bedrock",
-            	"bedrock_ip"
+            	"bedrock_ip",
+            	"__cbedrock_identified_list"
             ]
         ),
     ]
