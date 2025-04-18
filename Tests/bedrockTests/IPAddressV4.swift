@@ -1,6 +1,15 @@
-import XCTest
+import Testing
 @testable import RAW
 @testable import bedrock_ip
+
+extension __cbedrock_test_suite {
+	@Suite("BedrockTestSuite :: AddressV4Tests",
+		.serialized
+	)
+	internal struct AddressV4Tests {
+		
+	}
+}
 
 final class AddressV4Tests: XCTestCase {
     func testAddressV4Encoding() {
