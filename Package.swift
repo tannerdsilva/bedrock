@@ -10,7 +10,7 @@ let package = Package(
         .library(name:"bedrock", targets: ["bedrock"]),
 		.library(name:"bedrock_ip", targets: ["bedrock_ip"]),
     ],
-    dependencies: [
+    dependencies:[
         .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", "9.0.0"..<"10.0.0"),
         .package(url:"https://github.com/tannerdsilva/rawdog.git", "16.0.0"..<"17.0.0"),
   		.package(url:"https://github.com/apple/swift-log.git", "1.0.0"..<"2.0.0"),
@@ -39,12 +39,21 @@ let package = Package(
 			],
 			publicHeadersPath:"."
 		),
+		.target(
+			name:"__cbedrock_future",
+			dependencies:[
+				"__cbedrock_types",
+				"__cbedrock_identified_list"
+			],
+			publicHeadersPath:"."
+		),
         .testTarget(
             name: "BedrockTestSuite",
             dependencies: [
             	"bedrock",
             	"bedrock_ip",
-            	"__cbedrock_identified_list"
+            	"__cbedrock_identified_list",
+            	"__cbedrock_future"
             ]
         ),
     ]
