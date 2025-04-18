@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "bedrock",
-    platforms: [
+    platforms:[
     	.macOS(.v15)
     ],
     products: [
@@ -18,8 +18,8 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "bedrock",
-            dependencies: [
+            name:"bedrock",
+            dependencies:[
             	.product(name:"RAW", package:"rawdog"),
             	.product(name:"Logging", package:"swift-log"),
             ]
@@ -28,6 +28,15 @@ let package = Package(
 			.product(name:"RAW", package:"rawdog"),
 			.product(name:"QuickLMDB", package:"QuickLMDB")
 		]),
+		.target(
+			name:"bedrock_contained"
+		),
+		.target(
+			name:"bedrock_future",
+			dependencies:[
+				"__cbedrock_future"
+			]
+		),
 		.target(
 			name:"__cbedrock_types",
 			publicHeadersPath:"."
@@ -47,13 +56,23 @@ let package = Package(
 			],
 			publicHeadersPath:"."
 		),
+		.target(
+			name:"__cbedrock_threads",
+			dependencies:[
+				"__cbedrock_types"
+			],
+			publicHeadersPath:"."
+		),
         .testTarget(
             name: "BedrockTestSuite",
             dependencies: [
             	"bedrock",
             	"bedrock_ip",
+            	"bedrock_future",
+            	"bedrock_contained",
             	"__cbedrock_identified_list",
-            	"__cbedrock_future"
+            	"__cbedrock_future",
+            	"__cbedrock_threads"
             ]
         ),
     ]
