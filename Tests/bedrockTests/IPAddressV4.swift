@@ -1,6 +1,6 @@
 import XCTest
 @testable import RAW
-@testable import bedrock_ipaddress
+@testable import bedrock_ip
 
 final class AddressV4Tests: XCTestCase {
     func testAddressV4Encoding() {
@@ -25,12 +25,4 @@ final class AddressV4Tests: XCTestCase {
 		let rangeString = NetworkV4("192.168.1.1/24")!
 		XCTAssertEqual(String(rangeString.range.upperBound), "192.168.1.255")
 	}
-}
-
-extension AddressV4Tests {
-    static var allTests = [
-        ("testAddressV4Encoding", testAddressV4Encoding),
-        ("testInvalidAddressV4", testInvalidAddressV4),
-        ("testAddressV4Decoding", testAddressV4Decoding),
-    ]
 }

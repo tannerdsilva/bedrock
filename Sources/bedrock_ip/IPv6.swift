@@ -26,7 +26,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		}
 
 		// this logic could be done with a lot less code but it would require initializing and writing to bytes multiple times, whereas this way we only write to bytes once*
-		var sixteenBytes:(UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
+		var sixteenBytes:RAW_staticbuff_storetype
 		let fullBytes = Int(netmaskPrefix / 8)
 		switch fullBytes {
 			case 15: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0)
@@ -90,9 +90,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 	public static prefix func ~ (_ address:AddressV6) -> AddressV6 {
 		return address.RAW_access_staticbuff { ptr in
 			let bytes = ptr.assumingMemoryBound(to:UInt8.self)
-			return withUnsafePointer(to:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3], ~bytes[4], ~bytes[5], ~bytes[6], ~bytes[7], ~bytes[8], ~bytes[9], ~bytes[10], ~bytes[11], ~bytes[12], ~bytes[13], ~bytes[14], ~bytes[15])) { (ptr:UnsafePointer<AddressV6.RAW_staticbuff_storetype>) in
-				return AddressV6(RAW_staticbuff:ptr)
-			}
+			return AddressV6(RAW_staticbuff:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3], ~bytes[4], ~bytes[5], ~bytes[6], ~bytes[7], ~bytes[8], ~bytes[9], ~bytes[10], ~bytes[11], ~bytes[12], ~bytes[13], ~bytes[14], ~bytes[15]))
 		}
 	}
 
@@ -101,9 +99,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV6 in
 				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
 				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3], lhsBytes[4] | rhsBytes[4], lhsBytes[5] | rhsBytes[5], lhsBytes[6] | rhsBytes[6], lhsBytes[7] | rhsBytes[7], lhsBytes[8] | rhsBytes[8], lhsBytes[9] | rhsBytes[9], lhsBytes[10] | rhsBytes[10], lhsBytes[11] | rhsBytes[11], lhsBytes[12] | rhsBytes[12], lhsBytes[13] | rhsBytes[13], lhsBytes[14] | rhsBytes[14], lhsBytes[15] | rhsBytes[15])) { (ptr:UnsafePointer<AddressV6.RAW_staticbuff_storetype>) in
-					return AddressV6(RAW_staticbuff:ptr)
-				}
+				return AddressV6(RAW_staticbuff:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3], lhsBytes[4] | rhsBytes[4], lhsBytes[5] | rhsBytes[5], lhsBytes[6] | rhsBytes[6], lhsBytes[7] | rhsBytes[7], lhsBytes[8] | rhsBytes[8], lhsBytes[9] | rhsBytes[9], lhsBytes[10] | rhsBytes[10], lhsBytes[11] | rhsBytes[11], lhsBytes[12] | rhsBytes[12], lhsBytes[13] | rhsBytes[13], lhsBytes[14] | rhsBytes[14], lhsBytes[15] | rhsBytes[15]))
 			}
 		}
 	}
@@ -144,7 +140,7 @@ extension String {
 	}
 }
 
-@RAW_staticbuff(concat:AddressV6, AddressV6)
+@RAW_staticbuff(concat:AddressV6.self, AddressV6.self)
 public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
@@ -193,7 +189,7 @@ extension RangeV6:CustomDebugStringConvertible {
 	}
 }
 
-@RAW_staticbuff(concat:AddressV6, RAW_byte)
+@RAW_staticbuff(concat:AddressV6.self, RAW_byte.self)
 @MDB_comparable()
 public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype

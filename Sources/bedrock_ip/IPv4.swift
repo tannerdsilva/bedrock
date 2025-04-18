@@ -6,7 +6,7 @@ import QuickLMDB
 public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
-	public init?(_ address:String) {
+	public init?(_ address:consuming String) {
 		let parts = address.split(separator:".")
 		guard parts.count == 4 else {
 			return nil
@@ -64,35 +64,23 @@ public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 	}
 
 	public static func & (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
-		return lhs.RAW_access_staticbuff { lhsPtr -> AddressV4 in
-			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV4 in
-				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
-				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3])) {
-					return AddressV4(RAW_staticbuff:$0)
-				}
+		return lhs.RAW_access { lhsBytes -> AddressV4 in
+			return rhs.RAW_access { rhsBytes -> AddressV4 in
+				return AddressV4(RAW_staticbuff:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3]))
 			}
 		}
 	}
 
-
 	public static prefix func ~ (_ address:AddressV4) -> AddressV4 {
-		return address.RAW_access_staticbuff { ptr in
-			let bytes = ptr.assumingMemoryBound(to:UInt8.self)
-			return withUnsafePointer(to:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3])) {
-				return AddressV4(RAW_staticbuff:$0)
-			}
+		return address.RAW_access { bytes in
+			return AddressV4(RAW_staticbuff:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3]))
 		}
 	}
 
 	public static func | (lhs:AddressV4, rhs:AddressV4) -> AddressV4 {
-		return lhs.RAW_access_staticbuff { lhsPtr -> AddressV4 in
-			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV4 in
-				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
-				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3])) {
-					return AddressV4(RAW_staticbuff:$0)
-				}
+		return lhs.RAW_access{ lhsBytes -> AddressV4 in
+			return rhs.RAW_access { rhsBytes -> AddressV4 in
+				return AddressV4(RAW_staticbuff:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3]))
 			}
 		}
 	}
@@ -126,7 +114,7 @@ extension String {
 	}
 }
 
-@RAW_staticbuff(concat:AddressV4, AddressV4)
+@RAW_staticbuff(concat:AddressV4.self, AddressV4.self)
 public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
@@ -174,13 +162,10 @@ extension RangeV4:CustomDebugStringConvertible {
 	}
 }
 
-@RAW_staticbuff(concat:AddressV4, RAW_byte)
+@RAW_staticbuff(concat:AddressV4.self, RAW_byte.self)
 @MDB_comparable()
 public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
-	public typealias RAW_fixed_type = RAW_staticbuff_storetype
-
 	public let address:AddressV4
-
 	fileprivate let _subnet_prefix:RAW_byte
 	public var subnetPrefix:UInt8 {
 		get {

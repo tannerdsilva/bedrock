@@ -8,5 +8,5 @@ import Darwin
 
 /// returns the username that the calling process is running as
 public func getCurrentUser() -> String {
-	return String(validatingUTF8:getpwuid(geteuid()).pointee.pw_name)!
+	return String(validatingCString:getpwuid(geteuid()).pointee.pw_name)!
 }
