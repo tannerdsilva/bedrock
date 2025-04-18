@@ -34,7 +34,16 @@ let package = Package(
 		.target(
 			name:"bedrock_future",
 			dependencies:[
-				"__cbedrock_future"
+				"__cbedrock_future",
+				"bedrock_contained"
+			]
+		),
+		.target(
+			name:"bedrock_pthread",
+			dependencies:[
+				"bedrock_future",
+				"__cbedrock_threads",
+				"bedrock_contained"
 			]
 		),
 		.target(
