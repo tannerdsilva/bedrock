@@ -11,26 +11,15 @@ import bedrock_future
 import bedrock_contained
 import Synchronization
 
-// this file articulates a lot of unsafe and unbalanced memory management. the scope of the unsafety is limited to this single file, therefore, any possible errors or mishandlings of the memory should be visible from this file alone. the file consists of mostly private and fileprivate functions, with only a small handful of public/internal entrypoints being provided.
-
-/// runs any given arbitrary function on a newly created pthread.
-//public func run<R>(_ work:consuming @escaping @Sendable () throws -> R) async throws(PThreadLaunchFailure) -> Result<R, Swift.Error>? where R:Sendable {
-//	let launchedThread = try await GenericPThread.launch(work)
-//	return await launchedThread.workResult()
-//}
-//
-/// launch a pthread with a given function and return the running pthread.
-public func launch<R>(_ work:consuming @escaping @Sendable () throws -> R) async throws(PThreadLaunchFailure) -> Running where R:Sendable {
-	return try await GenericPThread.launch(work)
-}
-
 extension PThreadWork {
-	public static func launch(_ arg:consuming ArgumentType) async throws(PThreadLaunchFailure) -> Running {
-		return try await launchPThread(work:Self.self, argument:arg)
+	public static func launch(_ arg:consuming ArgumentType) async throws(PThreadLaunchFailure) -> Running<Self> {
+		let (pthreadLaunched, returnFuture) = try await launchPThread(work:Self.self, argument:arg)
+		return Running<Self>(alreadyLaunched:pthreadLaunched, returnFuture:returnFuture)
 	}
 	public static func run(_ arg:consuming ArgumentType) async throws -> Result<ReturnType, ThrowType>? {
-		let launched = try await Self.launch(arg)
-		return try await launched.workResult(Self.self, throwingOnCurrentTaskCancellation:CancellationError.self, taskCancellationError:CancellationError())
+		let (pthreadLaunched, returnFuture) = try await launchPThread(work:Self.self, argument:arg)
+		let asRunning = Running<Self>(alreadyLaunched:pthreadLaunched, returnFuture:returnFuture)
+		return try await asRunning.workResult(throwingOnCurrentTaskCancellation:CancellationError.self, taskCancellationError:CancellationError())
 	}
 }
 
@@ -129,45 +118,27 @@ fileprivate struct Setup {
 }
 
 /// a noncopyable structure that safely handles a running pthread. this structure is responsible for ensuring that the pthread is joined and that the memory is properly managed between the running memory space and the calling memory space.
-public class Running:@unchecked Sendable {
+public class Running<W>:@unchecked Sendable where W:PThreadWork {
 	// the pthread primitive
 	fileprivate let ptp:__cbedrock_threads_t_type
 	// the future that will be set to success when the pthread is launched.
 	fileprivate let returnFuture:Future<UnsafeMutableRawPointer, Never>
 	// the atomic flag that indicates if the pthread is running or not.
 	fileprivate let isRunning:Atomic<Bool> = .init(true)
-	
-	#if DEBUG
-	// the type of work that is taking place on the pthread. this is only a sanity check.
-	private let expectedWorkType:PThreadWork.Type
-	#endif
-	
+
 	fileprivate init(
 		alreadyLaunched pthread:__cbedrock_threads_t_type,
 		returnFuture rf:consuming Future<UnsafeMutableRawPointer, Never>,
-		workType:any PThreadWork.Type
 	) {
 		ptp = pthread
 		returnFuture = rf
-		
-		#if DEBUG
-		expectedWorkType = workType
-		#endif
-		
 		returnFuture.whenResult { [weak self] res in
 			self?.isRunning.store(false, ordering:.releasing)
 		}
 	}
 
 	/// async block for the work to be done on the pthread. throws a designated cancellation error if the task is canceled. the pthread is not cancelled when the task is canceled.
-	public borrowing func workResult<E, W>(_ workType:W.Type, throwingOnCurrentTaskCancellation throwType:consuming E.Type, taskCancellationError makeError:@autoclosure () -> E) async throws(E) -> Result<W.ReturnType, W.ThrowType>? where E:Swift.Error, W:PThreadWork {
-		
-		#if DEBUG
-		guard workType == expectedWorkType else {
-			fatalError("bedrock_pthread :: work type mismatch")
-		}
-		#endif
-		
+	public borrowing func workResult<E>(throwingOnCurrentTaskCancellation throwType:consuming E.Type, taskCancellationError makeError:@autoclosure () -> E) async throws(E) -> Result<W.ReturnType, W.ThrowType>? where E:Swift.Error, W:PThreadWork {
 		let result = try await returnFuture.result(throwingOnCurrentTaskCancellation:E.self, taskCancellationError:makeError())
 		guard result != nil else {
 			return nil
@@ -177,7 +148,7 @@ public class Running:@unchecked Sendable {
 	}
 
 	/// async block for the work to be done on the pthread. does not throw any error when the current task is cancelled. the pthread is not cancelled when the task is canceled.
-	public borrowing func workResult<W>(_ workType:W.Type, throwingOnCurrentTaskCancellation:Never.Type = Never.self) async -> Result<W.ReturnType, W.ThrowType>? where W:PThreadWork {
+	public borrowing func workResult(throwingOnCurrentTaskCancellation:Never.Type = Never.self) async -> Result<W.ReturnType, W.ThrowType>? where W:PThreadWork {
 		let result = await returnFuture.result(throwingOnCurrentTaskCancellation:Never.self)
 		guard result != nil else {
 			return nil
@@ -200,13 +171,13 @@ public class Running:@unchecked Sendable {
 			do {
 				_ = try cancel()
 			} catch {
-				fatalError("SwiftSlashPThread: pthread cancellation failed. this is a critical error. \(#file):\(#line)")
+				fatalError("bedrock_pthread: pthread cancellation failed. this is a critical error. \(#file):\(#line)")
 			}
 		}
 
 		// join the pthread
 		guard pthread_join(ptp, nil) == 0 else {
-			fatalError("SwiftSlashPThread: pthread_join failed. this is a critical error. \(#file):\(#line)")
+			fatalError("bedrock_pthread: pthread_join failed. this is a critical error. \(#file):\(#line)")
 		}
 	}
 }
@@ -216,7 +187,7 @@ public class Running:@unchecked Sendable {
 /// - parameter argument: the argument that is being passed into the work function.
 /// - returns: the running pthread that is being launched.
 /// - throws: a LaunchFailure error if the pthread fails to launch.
-fileprivate func launchPThread<W>(work workType:W.Type, argument:W.ArgumentType) async throws(PThreadLaunchFailure) -> Running where W:PThreadWork {
+fileprivate func launchPThread<W>(work workType:W.Type, argument:W.ArgumentType) async throws(PThreadLaunchFailure) -> (__cbedrock_threads_t_type, Future<UnsafeMutableRawPointer, Never>) where W:PThreadWork {
 	// this is the future that represents a successful launch and configuration of a pthread. pthreads must be configured for proper handling of cancellation in order to not leak memory.
 	let configureFuture = Future<UnsafeMutableRawPointer, Never>(successfulResultDeallocator: { ptr in
 		// free the retained future from memory.
@@ -253,7 +224,8 @@ fileprivate func launchPThread<W>(work workType:W.Type, argument:W.ArgumentType)
 	// wait for the pthread to be configured and ready to be canceled.
 	let returnFutureOpaque = await configureFuture.result()!.get()
 	let returnFuture = Unmanaged<Future<UnsafeMutableRawPointer, Never>>.fromOpaque(returnFutureOpaque).takeUnretainedValue()
-	return Running(alreadyLaunched:pthr, returnFuture:returnFuture, workType:workType)
+	return (pthr, returnFuture)
+	//return Running<W>(alreadyLaunched:pthr, returnFuture:returnFuture, workType:workType)
 }
 
 // allocator function. responsible for initializing the workspace and transferring the crucial memory from the Setup.

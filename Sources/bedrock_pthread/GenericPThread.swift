@@ -12,10 +12,12 @@ public struct GenericPThread<R:Sendable>:PThreadWork {
 	private let funcToRun:Argument
 
 	/// the argument type for the function to run.
-	public typealias Argument = @Sendable () throws -> R
+	public typealias Argument = @Sendable () throws(Swift.Error) -> R
 	
 	/// the return type for the function to run.
 	public typealias ReturnType = R
+	
+	public typealias ThrowType = Swift.Error
 
 	/// creates a new instance of GenericPThread.
 	/// - parameters:
@@ -27,7 +29,7 @@ public struct GenericPThread<R:Sendable>:PThreadWork {
 	/// runs the function and returns the result.
 	/// - returns: the result of the function.
 	/// - throws: any error that prevents the work from being completed.
-	public mutating func pthreadWork() throws -> R {
+	public mutating func pthreadWork() throws(Swift.Error) -> R {
 		return try funcToRun()
 	}
 }
