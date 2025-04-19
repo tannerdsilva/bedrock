@@ -13,7 +13,7 @@ extension Tag {
 internal struct __cbedrock_test_suite {}
 
 // bedrock test suite
-@Suite("BedrockTestSuite",
+@Suite("bedrock_test_suite",
 	.serialized,
 	.tags(.bedrock)
 )

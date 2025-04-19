@@ -79,6 +79,7 @@ let package = Package(
             	"bedrock_ip",
             	"bedrock_future",
             	"bedrock_contained",
+            	"bedrock_pthread",
             	"__cbedrock_identified_list",
             	"__cbedrock_future",
             	"__cbedrock_threads"

@@ -148,6 +148,27 @@ extension Future {
 			return waitID
 		}
 	}
+	
+	/// blocking wait for the result of the future
+	public borrowing func blockingResult() -> Result<Produced, Failure>? {
+		var getResult = SyncResult()
+		withUnsafeMutablePointer(to:&getResult) { rptr in
+			var memory = __cbedrock_future_wait_t_init_struct()
+			let waiter = __cbedrock_future_t_wait_sync_register(prim, rptr, futureSyncResultHandler, futureSyncErrorHandler, futureSyncCancelHandler, &memory)
+			guard waiter != nil else {
+				return
+			}
+			__cbedrock_future_t_wait_sync_block(prim, waiter!)
+		}
+		switch getResult.consumeResult()! {
+			case .success(_, let res):
+				return .success(Unmanaged<Contained<Produced>>.fromOpaque(res!).takeUnretainedValue().value())
+			case .failure(_, let res):
+				return .failure(Unmanaged<Contained<Failure>>.fromOpaque(res!).takeUnretainedValue().value())
+			case .cancel:
+				return nil
+		}
+	}
 
 	/// cancel a waiter that was created with `whenResult`.
 	/// - parameters:
