@@ -6,9 +6,8 @@ bedrock
 
 */
 
-// thats all she wrote
-#ifndef __CBEDROCK_TYPES_H
-#define __CBEDROCK_TYPES_H
+#ifndef __CLIBBEDROCK_TYPES_H
+#define __CLIBBEDROCK_TYPES_H
 
 #include <sys/types.h>
 
@@ -24,4 +23,4 @@ typedef void*_Nullable __cbedrock_optr_t;
 /// a constant optional pointer
 typedef const void*_Nonnull __cbedrock_coptr_t;
 
-#endif // __CBEDROCK_TYPES_H
+#endif // __CLIBBEDROCK_TYPES_H

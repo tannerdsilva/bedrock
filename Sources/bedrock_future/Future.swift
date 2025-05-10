@@ -149,7 +149,9 @@ extension Future {
 		}
 	}
 	
-	/// blocking wait for the result of the future
+	/// returns the result of the future or blocks the calling thread until one is available.
+	/// - NOTE: this function may block the calling thread and therefore is not available for calling within async functions.
+	@available(*, noasync, message:"blockingResult() will block the calling thread if a result is not immediately available. this is not compliant with the swift async runtime contract. please call one of result() variant functions instead.")
 	public borrowing func blockingResult() -> Result<Produced, Failure>? {
 		var getResult = SyncResult()
 		withUnsafeMutablePointer(to:&getResult) { rptr in

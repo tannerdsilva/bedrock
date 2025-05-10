@@ -72,6 +72,13 @@ let package = Package(
 			],
 			publicHeadersPath:"."
 		),
+		.target(
+			name:"__cbedrock_fifo",
+			dependencies:[
+				"__cbedrock_types"
+			],
+			publicHeadersPath:"."
+		),
         .testTarget(
             name: "BedrockTestSuite",
             dependencies: [
@@ -82,7 +89,8 @@ let package = Package(
             	"bedrock_pthread",
             	"__cbedrock_identified_list",
             	"__cbedrock_future",
-            	"__cbedrock_threads"
+            	"__cbedrock_threads",
+            	"__cbedrock_fifo"
             ]
         ),
     ]

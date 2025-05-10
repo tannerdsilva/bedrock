@@ -13,7 +13,7 @@ import Synchronization
 
 /// runs any given arbitrary function on a newly created pthread.
 public func run<R>(_ work:consuming @escaping @Sendable () throws -> R) async throws(PThreadLaunchFailure) -> Result<R, Swift.Error>? where R:Sendable {
-	let launchedThread = try await GenericPThread.launch(work)
+	let launchedThread = try GenericPThread.launch(work)
 	return await launchedThread.workResult()
 }
 

@@ -6,8 +6,8 @@ bedrock
 
 */
 
-#ifndef __CBEDROCK_IDENTIFIED_LIST_H
-#define __CBEDROCK_IDENTIFIED_LIST_H
+#ifndef __CLIBBEDROCK_IDENTIFIED_LIST_H
+#define __CLIBBEDROCK_IDENTIFIED_LIST_H
 
 #include "__cbedrock_types.h"
 
@@ -125,4 +125,4 @@ void __cbedrock_identified_list_iterate_hanginglock_complete(
 	const __cbedrock_identified_list_pair_ptr_t _
 );
 
-#endif // __CBEDROCK_IDENTIFIED_LIST_H
+#endif // __CLIBBEDROCK_IDENTIFIED_LIST_H
