@@ -7,8 +7,10 @@ let package = Package(
     	.macOS(.v15)
     ],
     products: [
-        .library(name:"bedrock", targets: ["bedrock"]),
-		.library(name:"bedrock_ip", targets: ["bedrock_ip"]),
+        .library(name:"bedrock", targets:["bedrock"]),
+		.library(name:"bedrock_ip", targets:["bedrock_ip"]),
+		.library(name:"bedrock_future", targets:["bedrock_future"]),
+		.library(name:"bedrock_fifo", targets:["bedrock_fifo"])
     ],
     dependencies:[
         .package(url:"https://github.com/tannerdsilva/QuickLMDB.git", "9.0.0"..<"10.0.0"),
@@ -30,6 +32,28 @@ let package = Package(
 		]),
 		.target(
 			name:"bedrock_contained"
+		),
+		.target(
+			name:"bedrock_nasyncstream",
+			dependencies:[
+				"__cbedrock_fifo",
+				"__cbedrock_identified_list",
+				"bedrock_fifo"
+			]
+		),
+		.target(
+			name:"bedrock_fifo",
+			dependencies:[
+				"__cbedrock_fifo",
+				"bedrock_contained"
+			]
+		),
+		.target(
+			name:"bedrock_identified_list",
+			dependencies:[
+				"__cbedrock_identified_list",
+				"bedrock_contained"
+			]
 		),
 		.target(
 			name:"bedrock_future",
