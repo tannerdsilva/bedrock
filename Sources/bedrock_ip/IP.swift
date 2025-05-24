@@ -99,9 +99,9 @@ public enum Network:Sendable, Hashable, Equatable, Comparable, Codable, Lossless
 	public var description:String {
 		switch self {
 			case .v4(let v4):
-				return String(v4.description)
+				return String(v4)
 			case .v6(let v6):
-				return String(v6.description)
+				return String(v6)
 		}
 	}
 
