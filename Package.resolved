@@ -1,24 +1,6 @@
 {
-  "originHash" : "fa0cc7796ee90afb617dd91c5fc07a5a1c1d46c0cb982112c8cf5c0163b7aae4",
+  "originHash" : "e12aa5caace44e1d05eeec99b9fc26fc7c9f9b580c82d28069b824847e787999",
   "pins" : [
-    {
-      "identity" : "clmdb",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tannerdsilva/CLMDB.git",
-      "state" : {
-        "revision" : "4ce5826424f8e65f395efc5b4c611479384722b1",
-        "version" : "0.9.30"
-      }
-    },
-    {
-      "identity" : "quicklmdb",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tannerdsilva/QuickLMDB.git",
-      "state" : {
-        "revision" : "a8899967974bec02ff136f49f1dc6942a42a66c6",
-        "version" : "9.0.0"
-      }
-    },
     {
       "identity" : "rawdog",
       "kind" : "remoteSourceControl",
@@ -71,15 +53,6 @@
       "state" : {
         "revision" : "0687f71944021d616d34d922343dcef086855920",
         "version" : "600.0.1"
-      }
-    },
-    {
-      "identity" : "swift-system",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-system.git",
-      "state" : {
-        "revision" : "f9266c85189c2751589a50ea5aec72799797e471",
-        "version" : "1.3.0"
       }
     }
   ],
