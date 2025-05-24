@@ -1,3 +1,3 @@
 # bedrock
 
-A description of this package.
+bedrock is a fundamental foundation for greatness.

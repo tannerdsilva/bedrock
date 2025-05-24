@@ -1,5 +1,4 @@
 import RAW
-import QuickLMDB
 
 public enum Address:Sendable, Hashable, Equatable, Comparable, Codable, LosslessStringConvertible {
     public var description:String {
@@ -100,9 +99,9 @@ public enum Network:Sendable, Hashable, Equatable, Comparable, Codable, Lossless
 	public var description:String {
 		switch self {
 			case .v4(let v4):
-				return String(v4)
+				return String(v4.description)
 			case .v6(let v6):
-				return String(v6)
+				return String(v6.description)
 		}
 	}
 
