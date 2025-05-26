@@ -1,5 +1,5 @@
 /// The Delta struct makes it easy to compare additions or subtractions of a list of Hashable objects.
-public struct Delta<T> where T:Hashable {
+public struct Delta<T>:Sendable where T:Hashable, T:Sendable {
 	/// the Type that is being compared
 	public typealias DeltaType = T
 	
