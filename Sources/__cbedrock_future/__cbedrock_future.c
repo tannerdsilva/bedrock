@@ -163,6 +163,8 @@ void __cbedrock_future_t_destroy(
 		case __CBEDROCK_FUTURE_STATUS_THROW:
 			____(atomic_load_explicit(&_->____rt, memory_order_acquire), atomic_load_explicit(&_->____rv, memory_order_acquire), __);
 			break;
+		case __CBEDROCK_FUTURE_STATUS_CANCEL:
+			break;
 		default:
 			printf("bedrock future internal error: invalid future status\n");
 			abort();
