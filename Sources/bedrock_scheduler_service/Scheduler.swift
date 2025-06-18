@@ -27,7 +27,7 @@ fileprivate struct EncodedDuration:Sendable {}
 
 @RAW_convertible_string_type<RAW_byte>(UTF8.self)
 @MDB_comparable()
-fileprivate struct EncodedString:ExpressibleByStringLiteral, CustomDebugStringConvertible, Sendable {
+fileprivate struct EncodedStringUTF8:ExpressibleByStringLiteral, CustomDebugStringConvertible, Sendable {
 	fileprivate var debugDescription:String {
 		return String(self)
 	}
@@ -85,9 +85,9 @@ public struct Scheduler:Sendable {
 
 	public let env:Environment
 
-	fileprivate let schedule_pid:Database.Strict<EncodedString, EncodedPID>
-	fileprivate let schedule_timeInterval:Database.Strict<EncodedString, EncodedDuration>
-	fileprivate let schedule_lastFireDate:Database.Strict<EncodedString, EncodedDate>
+	fileprivate let schedule_pid:Database.Strict<EncodedStringUTF8, EncodedPID>
+	fileprivate let schedule_timeInterval:Database.Strict<EncodedStringUTF8, EncodedDuration>
+	fileprivate let schedule_lastFireDate:Database.Strict<EncodedStringUTF8, EncodedDate>
 
 	public init(base:URL, log:Logger?) throws {
 		let dbFileName = "task-scheduler.mdb"
@@ -95,62 +95,60 @@ public struct Scheduler:Sendable {
 		let envSize = size_t(targetURL.getFileSize()) + size_t(1.28e6)
 		let makeEnv = try Environment(path:targetURL.path, flags:[.noSubDir, .noReadAhead], mapSize:envSize, maxReaders:32, maxDBs:3, mode:[.ownerReadWriteExecute, .groupRead, .groupExecute])
 		let someTrans = try Transaction(env:makeEnv, readOnly:false)
-		self.schedule_pid = try Database.Strict<EncodedString, EncodedPID>(env:makeEnv, name:Databases.scheduleTasks.rawValue, flags:[.create], tx:someTrans)
-		self.schedule_timeInterval = try Database.Strict<EncodedString, EncodedDuration>(env:makeEnv, name:Databases.scheduleIntervals.rawValue, flags:[.create], tx:someTrans)
-		self.schedule_lastFireDate = try Database.Strict<EncodedString, EncodedDate>(env:makeEnv, name:Databases.scheduleLastFireDate.rawValue, flags:[.create], tx:someTrans)
+		self.schedule_pid = try Database.Strict<EncodedStringUTF8, EncodedPID>(env:makeEnv, name:Databases.scheduleTasks.rawValue, flags:[.create], tx:someTrans)
+		self.schedule_timeInterval = try Database.Strict<EncodedStringUTF8, EncodedDuration>(env:makeEnv, name:Databases.scheduleIntervals.rawValue, flags:[.create], tx:someTrans)
+		self.schedule_lastFireDate = try Database.Strict<EncodedStringUTF8, EncodedDate>(env:makeEnv, name:Databases.scheduleLastFireDate.rawValue, flags:[.create], tx:someTrans)
 		try someTrans.commit()
 		self.env = makeEnv
 		self.log = log
 		log?.notice("instance init", metadata:["path":"'\(targetURL.path)'"])
 	}
 
-	public func runSchedule(name unencodedName:String, interval:Double, _ task:@Sendable @escaping () async throws -> Void) async throws {
-		let name = EncodedString(unencodedName)
-
+	public func runSchedule(name:TaskName, interval:TimeAmount, _ task:() async throws -> Void) async throws {
+		
 		// setup the task
-		let encodedName = name
-		let encodedInterval = EncodedDuration(RAW_native:interval)
+		let encodedInterval = EncodedDuration(RAW_native:UInt16(interval.nanoseconds / 1_000_000_000))
 		let myPID = EncodedPID.currentPID()
-
+		
+		// logging rituals
 		var mutateLogger = log
-		mutateLogger?[metadataKey:"name"] = "\(name)"
-		mutateLogger?[metadataKey:"interval"] = "\(interval)s"
-		mutateLogger?[metadataKey:"pid"] = "\(myPID.RAW_native())"
-		mutateLogger?.notice("task loop launched")
+		mutateLogger[metadataKey:"name"] = "\(name)"
+		mutateLogger[metadataKey:"interval"] = "\(interval.nanoseconds / 1_000_000_000)s"
+		mutateLogger.info("task launched")
 		defer {
-			mutateLogger?.notice("task loop ended")
+			mutateLogger.info("task ended")
 		}
-
-		// open the initial write transaction to document ourselves as the runner of the task. also capture the next target date
-		var nextTargetDate:Date
+		
+		// determine when the task should run next
+		var nextTargetDate:DateUTC
 		do {
 			let newTransaction = try Transaction(env:env, readOnly:false)
-
-			mutateLogger?.trace("task successfully opened introductory transaction")
+			mutateLogger.trace("task successfully opened introductory transaction")
 			do {
-				try schedule_pid.setEntry(key:encodedName, value:myPID, flags:[.noOverwrite], tx:newTransaction)
+				// try to set the pid for the task name
+				try schedule_pid.setEntry(key:name, value:myPID, flags:[.noOverwrite], tx:newTransaction)
 			} catch LMDBError.keyExists {
-				let existingPID = try schedule_pid.loadEntry(key:encodedName, tx:newTransaction).RAW_native()
+				// if the task is already running, check to see if it is still alive
+				let existingPID = try schedule_pid.loadEntry(key:name, tx:newTransaction).RAW_native()
 				guard kill(existingPID, 0) != 0 else {
-					mutateLogger?.warning("task is already running on PID '\(existingPID)'")
-					throw LMDBError.keyExists
+					mutateLogger.warning("task is already running on PID '\(existingPID)'")
+					throw ScheduleAlreadyRunningError(existingPID:existingPID)
 				}
-				try schedule_pid.setEntry(key:encodedName, value:myPID, flags:[], tx:newTransaction)
+				try schedule_pid.setEntry(key:name, value:myPID, flags:[], tx:newTransaction)
 			}
-			mutateLogger?.debug("PID successfully documented as the runner of the task")
-			try schedule_timeInterval.setEntry(key:encodedName, value:encodedInterval, flags:[], tx:newTransaction)
+			mutateLogger.debug("task PID successfully assigned: '\(myPID.RAW_native())'")
+			try schedule_timeInterval.setEntry(key:name, value:encodedInterval, flags:[], tx:newTransaction)
 			do {
-				let lastFireDate = try schedule_lastFireDate.loadEntry(key:encodedName, tx:newTransaction)
-				nextTargetDate = Date(lastFireDate).addingTimeInterval(interval)
-				mutateLogger?.trace("task was last fired at \(lastFireDate.timeIntervalSinceUnixDate()) (unix time), next target date is \(nextTargetDate.timeIntervalSinceUnixDate()) (unix time)")
+				let lastFireDate = try schedule_lastFireDate.loadEntry(key:name, tx:newTransaction)
+				nextTargetDate = lastFireDate.addingTimeInterval(Double(interval.nanoseconds / 1_000_000_000))
+				mutateLogger.trace("task has last fire date of \(lastFireDate.timeIntervalSinceUnixDate()).")
 			} catch LMDBError.notFound {
-				mutateLogger?.trace("task has no last fire date, setting to fire the task now")
-				nextTargetDate = Date()
+				mutateLogger.trace("task has no last fire date, setting to fire the task now")
+				nextTargetDate = DateUTC()
 			}
-			
 			try newTransaction.commit()
 		} catch let error {
-			mutateLogger?.error("task failed to initialize due to thrown error.", metadata:["error":"\(error)"])
+			mutateLogger.error("task failed to initialize due to thrown error.", metadata:["error":"\(error)"])
 			throw error
 		}
 
@@ -158,98 +156,82 @@ public struct Scheduler:Sendable {
 		defer {
 			do {
 				let someTrans = try Transaction(env:env, readOnly:false)
-				mutateLogger?.debug("task is removing itself from the database")
-				try schedule_pid.deleteEntry(key:encodedName, tx:someTrans)
-				try schedule_timeInterval.deleteEntry(key:encodedName, tx:someTrans)
+				mutateLogger.debug("task is removing itself from the database")
+				try schedule_pid.deleteEntry(key:name, tx:someTrans)
+				try schedule_timeInterval.deleteEntry(key:name, tx:someTrans)
 				try someTrans.commit()
-				mutateLogger?.trace("successfully removed task from the database")
+				mutateLogger.trace("successfully removed task from the database")
 			} catch let error {
-				#if DEBUG
-				mutateLogger?.critical("task failed to remove itself from the database due to thrown error", metadata:["error":"\(error)"])
-				fatalError("unable to remove task from database: \(error)")
-				#else
-				mutateLogger?.error("task failed to remove itself from the database due to thrown error", metadata:["error":"\(error)"])
-				#endif
+				mutateLogger.critical("task failed to remove itself from the database due to thrown error", metadata:["error":"\(error)"])
 			}
 		}
 
 		// this should transparently throw any errors that are thrown within the users task, as well as any unexpected errors that may be thrown by LMDB.
 		// cancellation errors that occurr outside of the users code should NOT cascade outside of this group.
-		try await withThrowingTaskGroup(of:Void.self) { tg in
-			// primary task loop runs here. 
-			tg.addTask { [nextTargetDate, mutateLogger = mutateLogger, en = encodedName, myPID] in
-				var nextTargetDate = nextTargetDate
+		mainLoop: while true {
 
-				mainLoop: while true {
-
-					// determine how much time should pass before running the task
-					let delayTime = nextTargetDate.timeIntervalSince(Date())
-					if delayTime > 0 {
-						// wait for the next target date
-						mutateLogger?.debug("sleeping task until fire time")
-						do {
-							try await Task.sleep(nanoseconds:UInt64(delayTime * 1e9))
-						} catch is CancellationError {
-							break mainLoop
-						}
-					} else if delayTime < 0 {
-						mutateLogger?.debug("task will fire immediately")
-						// fire now
-						nextTargetDate = Date()
-					}
-
-					// run the task
-					mutateLogger?.debug("running task.")
-					
-					// unexpected errors here should cause the task to cancel
-					do {
-						try await task()
-					} catch let error {
-						mutateLogger?.error("user task block failed with thrown error", metadata:["error":"\(error)"])
-						throw error
-					}
-
-					// write the new timing data to the database
-					let someTrans = try Transaction(env:env, readOnly:false)
-					mutateLogger?.debug("updating task timing data.", metadata:["next_target_date":"\(nextTargetDate)"])
-					// write the new fire date
-					try schedule_lastFireDate.setEntry(key:en, value:EncodedDate(nextTargetDate), flags:[], tx:someTrans)
-
-					// validate that we are still the owner of the schedule name and that we should continue firing it
-					let shouldBreak:Bool
-					do {
-						if try schedule_pid.loadEntry(key:en, tx:someTrans) != myPID {
-							// if the pid has changed, then the task has been rescheduled, so break out of the main loop
-							mutateLogger?.warning("task \(name) has been rescheduled")
-							shouldBreak = true
-						} else {
-							let nowDate = Date()
-							while nextTargetDate <= nowDate {
-								nextTargetDate = nextTargetDate.addingTimeInterval(interval)
-								mutateLogger?.trace("next target date \(nextTargetDate) is in the past, incrementing by \(interval) seconds")
-							}
-							// continue the main loop 
-							mutateLogger?.debug("task \(name) will fire next at \(nextTargetDate), which is ahead of \(nowDate)")
-							shouldBreak = false
-						}
-					} catch LMDBError.notFound {
-						mutateLogger?.warning("task \(name) is no longer scheduled with this pid")
-						shouldBreak = true
-					}
-					try someTrans.commit()
-					
-					// break the loop if the transaction deems we should, or if the task is under cancellation conditions
-					guard shouldBreak == false && Task.isCancelled == false else {
+			// determine how much time should pass before running the task
+			let delayTime = nextTargetDate.timeIntervalSince(DateUTC())
+			if delayTime > 0 {
+				// wait for the next target date
+				mutateLogger.debug("sleeping task until fire time")
+				do {
+					// wait for the next target date
+					try await cancelWhenGracefulShutdown({
+						try await Task.sleep(nanoseconds:UInt64(delayTime * 1e9))
+					})
+				} catch is CancellationError {
+					if Task.isCancelled == true {
+						throw CancellationError()
+					} else {
 						break mainLoop
 					}
 				}
+			} else if delayTime < 0 || delayTime > Double(UInt16.max) || UInt16(delayTime) > interval.nanoseconds / 1_000_000_000 {
+				mutateLogger.debug("task will fire immediately")
+				// the time to fire has already passed, so it will fire now
+				nextTargetDate = DateUTC()
 			}
 
-			tg.addTask {
-				try await gracefulShutdown()
+			// run the task
+			mutateLogger.debug("running task.")
+			
+			// unexpected errors here should cause the task to cancel
+			do {
+				try await task()
+			} catch let error {
+				mutateLogger.error("user task block failed with thrown error", metadata:["error":"\(error)"])
+				throw error
 			}
-			_ = try await tg.next()
-			tg.cancelAll()
+
+			// write the new timing data to the database
+			let someTrans = try Transaction(env:env, readOnly:false)
+			mutateLogger.debug("updating task timing data.", metadata:["next_target_date":"\(nextTargetDate.timeIntervalSinceUnixDate())"])
+			// write the new fire date
+			try schedule_lastFireDate.setEntry(key:name, value:nextTargetDate, flags:[], tx:someTrans)
+
+			// validate that we are still the owner of the schedule name and that we should continue firing it
+			do {
+				let owningPID = try schedule_pid.loadEntry(key:name, tx:someTrans)
+				if owningPID != myPID {
+					// if the pid has changed, then the task has been rescheduled, so break out of the main loop
+					mutateLogger.error("task \(name) has been rescheduled while this process was running")
+					throw UnexpectedTaskRescheduleError(hijackingPID:owningPID.RAW_native())
+				} else {
+					// pid remained the same, so we can continue, as we are still the owner of the task
+					let nowDate = DateUTC()
+					while nextTargetDate <= nowDate {
+						nextTargetDate = nextTargetDate.addingTimeInterval(Double(interval.nanoseconds / 1_000_000_000))
+						mutateLogger.trace("next target date \(nextTargetDate.timeIntervalSinceUnixDate()) is in the past, incrementing by \(Int(interval.nanoseconds)) seconds")
+					}
+					// continue the main loop
+					mutateLogger.debug("task \(name) will fire next at \(nextTargetDate.timeIntervalSinceUnixDate()), which is ahead of \(nowDate.timeIntervalSinceUnixDate())")
+				}
+			} catch LMDBError.notFound {
+				mutateLogger.warning("task \(name) is no longer scheduled with this pid")
+				throw VanishingTaskOwnershipError()
+			}
+			try someTrans.commit()
 		}
 	}
 }
