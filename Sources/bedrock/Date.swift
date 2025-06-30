@@ -16,7 +16,6 @@ fileprivate func systemReferenceDate() -> time_t {
 	timeStruct.tm_year = 101
 	return mktime(&timeStruct)
 }
-internal let refDate = systemReferenceDate()
 
 /// returns a ``time_t`` struct representing the reference date for this Date type.
 /// **NOTE**: the reference date is 00:00:00 UTC on 1 January 1970.
@@ -28,7 +27,6 @@ fileprivate func encodingReferenceDate() -> time_t {
 	timeStruct.tm_year = 70
 	return mktime(&timeStruct)
 }
-internal let encDate = encodingReferenceDate()
 
 
 /// a structure that represents a single point of time.
