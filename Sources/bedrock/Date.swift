@@ -28,7 +28,6 @@ fileprivate func encodingReferenceDate() -> time_t {
 	return mktime(&timeStruct)
 }
 
-
 /// a structure that represents a single point of time.
 /// - this structure provides no detail around timezones the date is represented in.
 @RAW_staticbuff(bytes:8)
