@@ -59,9 +59,17 @@ fileprivate func encodingReferenceDate() -> time_t {
 		public static func + (lhs:Self, rhs:Self) -> Self {
 			return Self(RAW_native:lhs.RAW_native() + rhs.RAW_native())
 		}
-		/// returns the subtracted result of teh two argument values
+		/// returns the sum of the two argument values, with the rhs value representing the number of seconds to add to the lhs value.
+		public static func + (lhs:Self, rhs:UInt64) -> Self {
+			return Self(RAW_native:lhs.RAW_native() + rhs)
+		}
+		/// returns the subtracted result of the two argument values
 		public static func - (lhs:Self, rhs:Self) -> Self {
 			return Self(RAW_native:lhs.RAW_native() - rhs.RAW_native())
+		}
+		/// returns the subtracted result of the two argument values, with the rhs value representing the number of seconds to subtract from the lhs value.
+		public static func - (lhs:Self, rhs:UInt64) -> Self {
+			return Self(RAW_native:lhs.RAW_native() - rhs)
 		}
 	}
 	
