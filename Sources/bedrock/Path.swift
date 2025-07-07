@@ -39,6 +39,17 @@ public struct Path:Sendable {
 	}
 }
 
+extension Path:Codable {
+	public func encode(to encoder:Encoder) throws {
+		var container = encoder.singleValueContainer()
+		try container.encode(path())
+	}
+	public init(from decoder:Decoder) throws {
+		let container = try decoder.singleValueContainer()
+		self = .init(try container.decode(String.self))
+	}
+}
+
 extension Path:ExpressibleByStringLiteral {
 	/// initialize a path by a string literal value.
 	public init(stringLiteral value: String) {
