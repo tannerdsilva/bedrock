@@ -15,7 +15,11 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		guard inet_pton(AF_INET6, address, &addressv6BE) == 1 else {
 			return nil
 		}
+		#if os(Linux)
+		self = .init(RAW_staticbuff:&addressv6BE.__in6_u.__u6_addr8)
+		#elseif os(macOS)
 		self = .init(RAW_staticbuff:&addressv6BE.__u6_addr.__u6_addr8)
+		#endif
 	}
 
 	public init?(subnetPrefix netmaskPrefix: UInt8) {
@@ -128,7 +132,11 @@ extension String {
 	public init(_ address:AddressV6) {
 		self = address.RAW_access_staticbuff({
 			var transactable = in6_addr()
+			#if os(Linux)
+			transactable.__in6_u.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
+			#elseif os(macOS)
 			transactable.__u6_addr.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
+			#endif
 			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
 			guard inet_ntop(AF_INET6, &transactable, stringBuffer.baseAddress, UInt32(INET6_ADDRSTRLEN)) != nil else {
 				fatalError("ipv6 address could not be string encoded")
