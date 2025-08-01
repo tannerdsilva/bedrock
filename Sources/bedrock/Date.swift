@@ -45,7 +45,7 @@ fileprivate func encodingReferenceDate() -> time_t {
 		}
 		/// returns the difference in time between the called instance and passed date
 		public func timeIntervalSince(_ other:Self) -> UInt64 {
-			return (self - other).RAW_native()
+			return RAW_native() - other.RAW_native()
 		}
 		/// returns a new value that is the sum of the current value and the passed interval
 		public func addingTimeInterval(_ interval:UInt64) -> Self {
