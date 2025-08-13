@@ -144,6 +144,19 @@ extension String {
 	}
 }
 
+extension sockaddr_in6 {
+	public init(_ address:AddressV6, port:UInt16) {
+		self = sockaddr_in6()
+		self.sin6_family = sa_family_t(AF_INET6)
+		self.sin6_port = port.bigEndian
+		self.sin6_flowinfo = 0
+		self.sin6_scope_id = 0
+		self.sin6_addr = address.RAW_access_staticbuff {
+			return $0.assumingMemoryBound(to:in6_addr.self).pointee
+		}
+	}
+}
+
 @RAW_staticbuff(concat:AddressV6.self, AddressV6.self)
 public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype

@@ -102,6 +102,18 @@ extension String {
 	}
 }
 
+extension sockaddr_in {
+	public init(_ address:AddressV4, port:UInt16) {
+		self = sockaddr_in()
+		self.sin_family = sa_family_t(AF_INET)
+		self.sin_port = port.bigEndian
+		self.sin_addr = address.RAW_access_staticbuff {
+			return $0.assumingMemoryBound(to:in_addr.self).pointee
+		}
+	}
+}
+
+
 @RAW_staticbuff(concat:AddressV4.self, AddressV4.self)
 public struct RangeV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
