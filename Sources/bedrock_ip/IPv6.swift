@@ -144,6 +144,7 @@ extension String {
 	}
 }
 
+public typealias sockaddr_in6 = __cbedrock_ip.sockaddr_in6
 extension sockaddr_in6 {
 	public init(_ address:AddressV6, port:UInt16) {
 		self = sockaddr_in6()
