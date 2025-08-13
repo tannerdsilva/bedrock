@@ -5,7 +5,6 @@ import __cbedrock_ip
 @RAW_staticbuff_fixedwidthinteger_type<UInt128>(bigEndian:true)
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
-
 	public init?(_ address:String) {
 		var addressv6BE = in6_addr()
 		guard inet_pton(AF_INET6, address, &addressv6BE) == 1 else {
@@ -134,6 +133,9 @@ extension String {
 			transactable.__u6_addr.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
 			#endif
 			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
+			defer {
+				stringBuffer.deallocate()
+			}
 			guard inet_ntop(AF_INET6, &transactable, stringBuffer.baseAddress, UInt32(INET6_ADDRSTRLEN)) != nil else {
 				fatalError("ipv6 address could not be string encoded")
 			}
