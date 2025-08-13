@@ -1,27 +1,17 @@
 import RAW
+import __cbedrock_ip
 
 @RAW_staticbuff(bytes:4)
+@RAW_staticbuff_fixedwidthinteger_type<UInt32>(bigEndian:true)
 public struct AddressV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
 	public init?(_ address:consuming String) {
-		let parts = address.split(separator:".")
-		guard parts.count == 4 else {
+		var addressv4BE = in_addr()
+		guard inet_pton(AF_INET, address, &addressv4BE) == 1 else {
 			return nil
 		}
-		var octets = [UInt8]()
-		for part in parts {
-			guard let asInt = UInt8(part) else {
-				return nil
-			}
-			octets.append(asInt)
-		}
-		guard octets.count == 4 else {
-			return nil
-		}
-		self = octets.RAW_access {
-			return Self(RAW_staticbuff:$0.baseAddress!)
-		}
+		self = .init(RAW_staticbuff:&addressv4BE.s_addr)
 	}
 
 	public init?(subnetPrefix netmaskPrefix:UInt8) {

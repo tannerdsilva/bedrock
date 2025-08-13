@@ -1,12 +1,8 @@
 import RAW
-
-#if os(Linux)
-import Glibc
-#elseif os(macOS)
-import Darwin
-#endif
+import __cbedrock_ip
 
 @RAW_staticbuff(bytes:16)
+@RAW_staticbuff_fixedwidthinteger_type<UInt128>(bigEndian:true)
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 
