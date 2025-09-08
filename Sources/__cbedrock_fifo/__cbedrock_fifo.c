@@ -39,7 +39,7 @@ __cbedrock_fifo_linkpair_ptr_t __cbedrock_fifo_init(
 		};
 		pthread_mutex_init(&__0.____m, NULL);
 		pthread_mutex_init(&__0.____wm, NULL);
-
+		pthread_mutex_lock(&__0.____wm);
 		void *__1 = malloc(sizeof(__cbedrock_fifo_linkpair_t));
 		memcpy(__1, &__0, sizeof(__cbedrock_fifo_linkpair_t));
 
@@ -60,6 +60,7 @@ __cbedrock_fifo_linkpair_ptr_t __cbedrock_fifo_init(
 		};
 		// state mutex would initialize here if it was enabled, but it is not.
 		pthread_mutex_init(&__0.____wm, NULL);
+		pthread_mutex_lock(&__0.____wm);
 
 		void *__1 = malloc(sizeof(__cbedrock_fifo_linkpair_t));
 		memcpy(__1, &__0, sizeof(__cbedrock_fifo_linkpair_t));
@@ -101,19 +102,19 @@ bool __cbedrock_fifo_close(
 		pthread_mutex_lock(&_->____m);
 	}
 	bool __2 = true;
-	if (atomic_compare_exchange_weak(&_->____iwlk, &__2, false) == true) {
-		pthread_mutex_unlock(&_->____wm);
-		if (_->____hm == true) {
-			pthread_mutex_unlock(&_->____m);
-		}
-		pthread_mutex_lock(&_->____wm);
-		if (_->____hm == true) {
-			pthread_mutex_lock(&_->____m);
-		}
-		pthread_mutex_unlock(&_->____wm);
-	} else if (__2 == true) {
-		abort();
-	}
+	// if (atomic_compare_exchange_weak_explicit(&_->____iwlk, &__2, false, memory_order_acq_rel, memory_order_acquire) == true) {
+	// 	pthread_mutex_unlock(&_->____wm);
+	// 	if (_->____hm == true) {
+	// 		pthread_mutex_unlock(&_->____m);
+	// 	}
+	// 	pthread_mutex_lock(&_->____wm);
+	// 	if (_->____hm == true) {
+	// 		pthread_mutex_lock(&_->____m);
+	// 	}
+	// 	pthread_mutex_unlock(&_->____wm);
+	// } else if (__2 == true) {
+	// 	abort();
+	// }
 	__cbedrock_fifo_link_ptr_t __0 = atomic_load_explicit(&_->____bp, memory_order_acquire);
 	while (__0 != NULL) {
 		__cbedrock_fifo_link_ptr_t __1 = atomic_load_explicit(&__0->__, memory_order_acquire);
@@ -149,7 +150,7 @@ bool __cbedrock_fifo_pass_cap(
 	if (atomic_compare_exchange_weak_explicit(&_->____ic, &__1, true, memory_order_acq_rel, memory_order_relaxed) == true) {
 		atomic_store_explicit(&_->____cp, __, memory_order_release);
 		bool __2 = true;
-		if (atomic_compare_exchange_weak(&_->____iwlk, &__2, false) == true) {
+		if (atomic_compare_exchange_weak_explicit(&_->____iwlk, &__2, false, memory_order_acq_rel, memory_order_acquire) == true) {
 			pthread_mutex_unlock(&_->____wm);
 		} else if (__2 == true) {
 			abort();
@@ -219,6 +220,7 @@ int8_t __cbedrock_fifo_pass(
 		bool __3 = true;
 		if (atomic_compare_exchange_weak(&_->____iwlk, &__3, false) == true) {
 			pthread_mutex_unlock(&_->____wm);
+			printf(" - \tPRODUCER UNLOCKED\n");
 		}
 		__0 = 0;
 		goto returnTime;
@@ -304,8 +306,6 @@ __cbedrock_fifo_consume_result_t __cbedrock_fifo_consume_blocking(
 		__cbedrock_fifo_consume_result_t __1;
 		if (__0 == true) {
 			__0 = false;
-			atomic_store_explicit(&_->____iwlk, false, memory_order_release);
-			pthread_mutex_unlock(&_->____wm);
 		}
 		if (atomic_load_explicit(&_->____ec, memory_order_acquire) > 0) {
 			if (____cbedrock_fifo_consume_next(atomic_load_explicit(&_->____bp, memory_order_acquire), _, __)) {
@@ -318,9 +318,7 @@ __cbedrock_fifo_consume_result_t __cbedrock_fifo_consume_blocking(
 		} else {
 			if (atomic_load_explicit(&_->____ic, memory_order_acquire) == false) {
 				bool __2 = false;
-				if (atomic_compare_exchange_weak_explicit(&_->____iwlk, &__2, true, memory_order_acq_rel, memory_order_relaxed)) {
-					pthread_mutex_lock(&_->____wm);
-				} else {
+				if (atomic_compare_exchange_weak_explicit(&_->____iwlk, &__2, true, memory_order_acq_rel, memory_order_acquire) == false) {
 					abort();
 				}
 				goto blockForNext;
@@ -334,8 +332,8 @@ __cbedrock_fifo_consume_result_t __cbedrock_fifo_consume_blocking(
 		if (_->____hm) {
 			pthread_mutex_unlock(&_->____m);
 		}
+		pthread_mutex_lock(&_->____wm);
 		__0 = true;
-		
 		goto loadAgain;
 	returnTime:
 		if (_->____hm) {

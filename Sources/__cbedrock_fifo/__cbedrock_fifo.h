@@ -141,7 +141,7 @@ int8_t __cbedrock_fifo_pass(
 );
 
 /// consumes the next data pointer in the chain, removing it from the chain and returning it to the caller.
-/// @param _ pointer to the fifo to pop data from.
+/// @param _ pointer to the fifo to pop data,, from.
 /// @param __ memory location to store the popped data pointer after if one was successfully consumed from the chain.
 /// @return the result of the consumption operation.
 __cbedrock_fifo_consume_result_t __cbedrock_fifo_consume_nonblocking(
