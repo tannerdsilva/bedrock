@@ -221,7 +221,6 @@ int8_t __cbedrock_fifo_pass(
 		bool __3 = true;
 		if (atomic_compare_exchange_weak(&_->____iwlk, &__3, false) == true) {
 			pthread_mutex_unlock(&_->____wm);
-			printf(" - \tPRODUCER UNLOCKED\n");
 		}
 		__0 = 0;
 		goto returnTime;
