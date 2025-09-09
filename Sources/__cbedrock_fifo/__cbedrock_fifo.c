@@ -102,19 +102,19 @@ bool __cbedrock_fifo_close(
 		pthread_mutex_lock(&_->____m);
 	}
 	bool __2 = true;
-	// if (atomic_compare_exchange_weak_explicit(&_->____iwlk, &__2, false, memory_order_acq_rel, memory_order_acquire) == true) {
-	// 	pthread_mutex_unlock(&_->____wm);
-	// 	if (_->____hm == true) {
-	// 		pthread_mutex_unlock(&_->____m);
-	// 	}
-	// 	pthread_mutex_lock(&_->____wm);
-	// 	if (_->____hm == true) {
-	// 		pthread_mutex_lock(&_->____m);
-	// 	}
-	// 	pthread_mutex_unlock(&_->____wm);
-	// } else if (__2 == true) {
-	// 	abort();
-	// }
+	if (atomic_compare_exchange_weak_explicit(&_->____iwlk, &__2, false, memory_order_acq_rel, memory_order_acquire) == true) {
+		pthread_mutex_unlock(&_->____wm);
+		if (_->____hm == true) {
+			pthread_mutex_unlock(&_->____m);
+		}
+		pthread_mutex_lock(&_->____wm);
+		if (_->____hm == true) {
+			pthread_mutex_lock(&_->____m);
+		}
+		pthread_mutex_unlock(&_->____wm);
+	} else if (__2 == true) {
+		abort();
+	}
 	__cbedrock_fifo_link_ptr_t __0 = atomic_load_explicit(&_->____bp, memory_order_acquire);
 	while (__0 != NULL) {
 		__cbedrock_fifo_link_ptr_t __1 = atomic_load_explicit(&__0->__, memory_order_acquire);
@@ -129,6 +129,7 @@ bool __cbedrock_fifo_close(
 	if (__4 == true) {
 		(*____) = atomic_load_explicit(&_->____cp, memory_order_acquire);
 	}
+	pthread_mutex_unlock(&_->____wm);
 	pthread_mutex_destroy(&_->____wm);
 	if (_->____hm == true) {
 		pthread_mutex_unlock(&_->____m);
@@ -298,15 +299,11 @@ __cbedrock_fifo_consume_result_t __cbedrock_fifo_consume_blocking(
 	const __cbedrock_fifo_linkpair_ptr_t _,
 	__cbedrock_optr_t*_Nonnull __
 ) {
-	bool __0 = false;
 	loadAgain:
 		if (_->____hm == true) {
 			pthread_mutex_lock(&_->____m);
 		}
 		__cbedrock_fifo_consume_result_t __1;
-		if (__0 == true) {
-			__0 = false;
-		}
 		if (atomic_load_explicit(&_->____ec, memory_order_acquire) > 0) {
 			if (____cbedrock_fifo_consume_next(atomic_load_explicit(&_->____bp, memory_order_acquire), _, __)) {
 				__1 = __CBEDROCK_FIFO_CONSUME_RESULT;
@@ -333,7 +330,6 @@ __cbedrock_fifo_consume_result_t __cbedrock_fifo_consume_blocking(
 			pthread_mutex_unlock(&_->____m);
 		}
 		pthread_mutex_lock(&_->____wm);
-		__0 = true;
 		goto loadAgain;
 	returnTime:
 		if (_->____hm) {
