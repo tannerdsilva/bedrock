@@ -103,14 +103,15 @@ extension String {
 }
 
 public typealias sockaddr_in = __cbedrock_ip.sockaddr_in
-extension sockaddr_in {
-	public init(_ address:AddressV4, port:UInt16) {
-		self = sockaddr_in()
-		self.sin_family = sa_family_t(AF_INET)
-		self.sin_port = port.bigEndian
-		self.sin_addr = address.RAW_access_staticbuff {
+extension AddressV4 {
+	public func sockaddr_in(port:UInt16) -> sockaddr_in {
+		var newIn = bedrock_ip.sockaddr_in()
+		newIn.sin_family = sa_family_t(AF_INET)
+		newIn.sin_port = port.bigEndian
+		newIn.sin_addr = RAW_access_staticbuff {
 			return $0.assumingMemoryBound(to:in_addr.self).pointee
 		}
+		return newIn
 	}
 }
 

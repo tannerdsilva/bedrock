@@ -145,16 +145,17 @@ extension String {
 }
 
 public typealias sockaddr_in6 = __cbedrock_ip.sockaddr_in6
-extension sockaddr_in6 {
-	public init(_ address:AddressV6, port:UInt16) {
-		self = sockaddr_in6()
-		self.sin6_family = sa_family_t(AF_INET6)
-		self.sin6_port = port.bigEndian
-		self.sin6_flowinfo = 0
-		self.sin6_scope_id = 0
-		self.sin6_addr = address.RAW_access_staticbuff {
+extension AddressV6 {
+	public func sockaddr_in6(port:UInt16) -> sockaddr_in6 {
+		var newIn = bedrock_ip.sockaddr_in6()
+		newIn.sin6_family = sa_family_t(AF_INET6)
+		newIn.sin6_port = port.bigEndian
+		newIn.sin6_flowinfo = 0
+		newIn.sin6_scope_id = 0
+		newIn.sin6_addr = RAW_access_staticbuff {
 			return $0.assumingMemoryBound(to:in6_addr.self).pointee
 		}
+		return newIn
 	}
 }
 
