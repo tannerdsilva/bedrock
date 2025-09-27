@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.2
 import PackageDescription
 
 let package = Package(
@@ -27,11 +27,17 @@ let package = Package(
 		.target(
 			name:"bedrock_ip",
 			dependencies:[
-				.product(name:"RAW", package:"rawdog")
+				.product(name:"RAW", package:"rawdog"),
+				"__cbedrock_ip"
 			]
 		),
 		.target(
 			name:"bedrock_contained"
+		),
+		.target(
+			name:"__cbedrock_ip",
+			dependencies:[],
+			publicHeadersPath:"."
 		),
 		.target(
 			name:"bedrock_nasyncstream",

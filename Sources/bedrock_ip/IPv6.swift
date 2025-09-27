@@ -1,15 +1,10 @@
 import RAW
-
-#if os(Linux)
-import Glibc
-#elseif os(macOS)
-import Darwin
-#endif
+import __cbedrock_ip
 
 @RAW_staticbuff(bytes:16)
+@RAW_staticbuff_fixedwidthinteger_type<UInt128>(bigEndian:true)
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
 	public typealias RAW_fixed_type = RAW_staticbuff_storetype
-
 	public init?(_ address:String) {
 		var addressv6BE = in6_addr()
 		guard inet_pton(AF_INET6, address, &addressv6BE) == 1 else {
@@ -138,11 +133,29 @@ extension String {
 			transactable.__u6_addr.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
 			#endif
 			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
+			defer {
+				stringBuffer.deallocate()
+			}
 			guard inet_ntop(AF_INET6, &transactable, stringBuffer.baseAddress, UInt32(INET6_ADDRSTRLEN)) != nil else {
 				fatalError("ipv6 address could not be string encoded")
 			}
 			return String(cString:stringBuffer.baseAddress!)
 		})
+	}
+}
+
+public typealias sockaddr_in6 = __cbedrock_ip.sockaddr_in6
+extension AddressV6 {
+	public func sockaddr_in6(port:UInt16) -> sockaddr_in6 {
+		var newIn = bedrock_ip.sockaddr_in6()
+		newIn.sin6_family = sa_family_t(AF_INET6)
+		newIn.sin6_port = port.bigEndian
+		newIn.sin6_flowinfo = 0
+		newIn.sin6_scope_id = 0
+		newIn.sin6_addr = RAW_access_staticbuff {
+			return $0.assumingMemoryBound(to:in6_addr.self).pointee
+		}
+		return newIn
 	}
 }
 
