@@ -13,7 +13,7 @@ let package = Package(
 		.library(name:"bedrock_fifo", targets:["bedrock_fifo"])
 	],
 	dependencies:[
-		.package(url:"https://github.com/tannerdsilva/rawdog.git", "16.0.0"..<"20.0.0"),
+		.package(url:"https://github.com/tannerdsilva/rawdog.git", "20.0.0"..<"21.0.0"),
 		.package(url:"https://github.com/apple/swift-log.git", "1.0.0"..<"2.0.0")
 	],
 	targets:[
