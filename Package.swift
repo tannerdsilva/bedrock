@@ -10,7 +10,8 @@ let package = Package(
 		.library(name:"bedrock", targets:["bedrock"]),
 		.library(name:"bedrock_ip", targets:["bedrock_ip"]),
 		.library(name:"bedrock_future", targets:["bedrock_future"]),
-		.library(name:"bedrock_fifo", targets:["bedrock_fifo"])
+		.library(name:"bedrock_fifo", targets:["bedrock_fifo"]),
+		.library(name:"bedrock_pthread", targets:["bedrock_pthread"])
 	],
 	dependencies:[
 		.package(url:"https://github.com/tannerdsilva/rawdog.git", "20.0.0"..<"21.0.0"),
