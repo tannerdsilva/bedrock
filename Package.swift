@@ -7,17 +7,18 @@ let package = Package(
 		.macOS(.v15)
 	],
 	products:[
-		.library(name:"bedrock", targets:["bedrock"]),
-		.library(name:"bedrock_ip", targets:["bedrock_ip"]),
-		.library(name:"bedrock_future", targets:["bedrock_future"]),
-		.library(name:"bedrock_fifo", targets:["bedrock_fifo"]),
-		.library(name:"bedrock_pthread", targets:["bedrock_pthread"])
+//		.library(name:"bedrock", targets:["bedrock"]),
+//		.library(name:"bedrock_ip", targets:["bedrock_ip"]),
+//		.library(name:"bedrock_future", targets:["bedrock_future"]),
+//		.library(name:"bedrock_fifo", targets:["bedrock_fifo"]),
+//		.library(name:"bedrock_pthread", targets:["bedrock_pthread"])
 	],
 	dependencies:[
 		.package(url:"https://github.com/tannerdsilva/rawdog.git", "20.0.0"..<"21.0.0"),
 		.package(url:"https://github.com/apple/swift-log.git", "1.0.0"..<"2.0.0")
 	],
 	targets:[
+		/*
 		.target(
 			name:"bedrock",
 			dependencies:[
@@ -33,20 +34,9 @@ let package = Package(
 			]
 		),
 		.target(
-			name:"bedrock_contained"
-		),
-		.target(
 			name:"__cbedrock_ip",
 			dependencies:[],
 			publicHeadersPath:"."
-		),
-		.target(
-			name:"bedrock_nasyncstream",
-			dependencies:[
-				"__cbedrock_fifo",
-				"__cbedrock_identified_list",
-				"bedrock_fifo"
-			]
 		),
 		.target(
 			name:"bedrock_fifo",
@@ -55,6 +45,8 @@ let package = Package(
 				"bedrock_contained"
 			]
 		),
+		*/
+		/*
 		.target(
 			name:"bedrock_identified_list",
 			dependencies:[
@@ -77,23 +69,13 @@ let package = Package(
 				"bedrock_contained"
 			]
 		),
+		*/
+		.target(
+			name:"bedrock_oneshotlatch",
+			publicHeadersPath:"."
+		),
 		.target(
 			name:"__cbedrock_types",
-			publicHeadersPath:"."
-		),
-		.target(
-			name:"__cbedrock_identified_list",
-			dependencies:[
-				"__cbedrock_types"
-			],
-			publicHeadersPath:"."
-		),
-		.target(
-			name:"__cbedrock_future",
-			dependencies:[
-				"__cbedrock_types",
-				"__cbedrock_identified_list"
-			],
 			publicHeadersPath:"."
 		),
 		.target(
@@ -103,13 +85,7 @@ let package = Package(
 			],
 			publicHeadersPath:"."
 		),
-		.target(
-			name:"__cbedrock_fifo",
-			dependencies:[
-				"__cbedrock_types"
-			],
-			publicHeadersPath:"."
-		),
+		/*
 		.testTarget(
 			name: "BedrockTestSuite",
 			dependencies:[
@@ -118,11 +94,9 @@ let package = Package(
 				"bedrock_future",
 				"bedrock_contained",
 				"bedrock_pthread",
-				"__cbedrock_identified_list",
-				"__cbedrock_future",
 				"__cbedrock_threads",
-				"__cbedrock_fifo"
 			]
 		)
+		*/
 	]
 )
