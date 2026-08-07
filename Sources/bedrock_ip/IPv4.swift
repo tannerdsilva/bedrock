@@ -226,8 +226,8 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		let boundLHS = lhs_data.assumingMemoryBound(to:Self.self)
 		let boundRHS = rhs_data.assumingMemoryBound(to:Self.self)
 
-		return withUnsafePointer(to:(boundLHS.pointer(to: \.address)!.pointee & boundLHS.pointer(to: \.subnetMask)!.pointee)) { lhsMasked in
-			return withUnsafePointer(to:(boundRHS.pointer(to: \.address)!.pointee & boundRHS.pointer(to: \.subnetMask)!.pointee)) { rhsMasked in
+		return withUnsafePointer(to:(boundLHS.pointee.address & boundLHS.pointee.subnetMask)) { lhsMasked in
+			return withUnsafePointer(to:(boundRHS.pointee.address & boundRHS.pointee.subnetMask)) { rhsMasked in
 				
 				// lhs and rhs are now masked to the same subnet, compare them.
 
@@ -235,7 +235,7 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 				switch cmpResult {
 					case 0:
 						// matching masked addresses, compare subnet prefixes
-						return Int32(boundLHS.pointer(to: \.subnetPrefix)!.pointee) - Int32(boundRHS.pointer(to: \.subnetPrefix)!.pointee)
+						return Int32(boundLHS.pointee.subnetPrefix) - Int32(boundRHS.pointee.subnetPrefix)
 					default:
 						return Int32(cmpResult)
 				}
