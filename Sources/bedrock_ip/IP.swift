@@ -1,22 +1,22 @@
 import RAW
 
 extension Address:RAW_accessible {
-	public borrowing func RAW_access<R, E>(_ body:(UnsafeBufferPointer<UInt8>) throws(E) -> R) throws(E) -> R where E:Swift.Error {
+	public borrowing func RAW_access_immutable<R, E>(_:UnsafeRawBufferPointer.Type, _ body:(UnsafeRawBufferPointer) throws(E) -> R) throws(E) -> R where E:Swift.Error {
 		switch self {
 			case .v4(let addr):
-				return try addr.RAW_access(body)
+				return try addr.RAW_access_immutable(UnsafeRawBufferPointer.self, body)
 			case .v6(let addr):
-				return try addr.RAW_access(body)
+				return try addr.RAW_access_immutable(UnsafeRawBufferPointer.self, body)
 		}
 	}
-	public mutating func RAW_access_mutating<R, E>(_ body:(UnsafeMutableBufferPointer<UInt8>) throws(E) -> R) throws(E) -> R where E:Swift.Error {
+	public mutating func RAW_access_mutable<R, E>(_:UnsafeMutableRawBufferPointer.Type, _ body:(UnsafeMutableRawBufferPointer) throws(E) -> R) throws(E) -> R where E:Swift.Error {
 		switch self {
 			case .v4(var addr):
-				let retVal = try addr.RAW_access_mutating(body)
+				let retVal = try addr.RAW_access_mutable(UnsafeMutableRawBufferPointer.self, body)
 				self = .v4(addr)
 				return retVal
 			case .v6(var addr):
-				let retVal = try addr.RAW_access_mutating(body)
+				let retVal = try addr.RAW_access_mutable(UnsafeMutableRawBufferPointer.self, body)
 				self = .v6(addr)
 				return retVal
 		}
@@ -24,15 +24,15 @@ extension Address:RAW_accessible {
 }
 
 extension Address:RAW_decodable {
-	public init?(RAW_decode:UnsafeRawPointer, count:size_t) {
-		switch count {
-			case MemoryLayout<AddressV6.RAW_staticbuff_storetype>.size:
-				guard let addr = AddressV6(RAW_decode:RAW_decode, count:count) else {
+	public init?(RAW_decode:UnsafeRawBufferPointer) {
+		switch RAW_decode.count {
+			case MemoryLayout<AddressV6.RAW_fixed_type>.size:
+				guard let addr = AddressV6(RAW_decode:RAW_decode) else {
 					return nil
 				}
 				self = .v6(addr)
-			case MemoryLayout<AddressV4.RAW_staticbuff_storetype>.size:
-				guard let addr = AddressV4(RAW_decode:RAW_decode, count:count) else {
+			case MemoryLayout<AddressV4.RAW_fixed_type>.size:
+				guard let addr = AddressV4(RAW_decode:RAW_decode) else {
 					return nil
 				}
 				self = .v4(addr)
@@ -138,22 +138,22 @@ public enum Address:Sendable, Hashable, Equatable, Comparable, Codable, Lossless
 }
 
 extension Network:RAW_accessible {
-	public borrowing func RAW_access<R, E>(_ body:(UnsafeBufferPointer<UInt8>) throws(E) -> R) throws(E) -> R where E:Swift.Error {
+	public borrowing func RAW_access_immutable<R, E>(_:UnsafeRawBufferPointer.Type, _ body:(UnsafeRawBufferPointer) throws(E) -> R) throws(E) -> R where E:Swift.Error {
 		switch self {
 			case .v4(let net):
-				return try net.RAW_access(body)
+				return try net.RAW_access_immutable(UnsafeRawBufferPointer.self, body)
 			case .v6(let net):
-				return try net.RAW_access(body)
+				return try net.RAW_access_immutable(UnsafeRawBufferPointer.self, body)
 		}
 	}
-	public mutating func RAW_access_mutating<R, E>(_ body:(UnsafeMutableBufferPointer<UInt8>) throws(E) -> R) throws(E) -> R where E:Swift.Error {
+	public mutating func RAW_access_mutable<R, E>(_:UnsafeMutableRawBufferPointer.Type, _ body:(UnsafeMutableRawBufferPointer) throws(E) -> R) throws(E) -> R where E:Swift.Error {
 		switch self {
 			case .v4(var net):
-				let retVal = try net.RAW_access_mutating(body)
+				let retVal = try net.RAW_access_mutable(UnsafeMutableRawBufferPointer.self, body)
 				self = .v4(net)
 				return retVal
 			case .v6(var net):
-				let retVal = try net.RAW_access_mutating(body)
+				let retVal = try net.RAW_access_mutable(UnsafeMutableRawBufferPointer.self, body)
 				self = .v6(net)
 				return retVal
 		}
@@ -161,15 +161,15 @@ extension Network:RAW_accessible {
 }
 
 extension Network:RAW_decodable {
-	public init?(RAW_decode:UnsafeRawPointer, count:size_t) {
-		switch count {
-			case MemoryLayout<NetworkV6.RAW_staticbuff_storetype>.size:
-				guard let net = NetworkV6(RAW_decode:RAW_decode, count:count) else {
+	public init?(RAW_decode:UnsafeRawBufferPointer) {
+		switch RAW_decode.count {
+			case MemoryLayout<NetworkV6.RAW_fixed_type>.size:
+				guard let net = NetworkV6(RAW_decode:RAW_decode) else {
 					return nil
 				}
 				self = .v6(net)
-			case MemoryLayout<NetworkV4.RAW_staticbuff_storetype>.size:
-				guard let net = NetworkV4(RAW_decode:RAW_decode, count:count) else {
+			case MemoryLayout<NetworkV4.RAW_fixed_type>.size:
+				guard let net = NetworkV4(RAW_decode:RAW_decode) else {
 					return nil
 				}
 				self = .v4(net)
