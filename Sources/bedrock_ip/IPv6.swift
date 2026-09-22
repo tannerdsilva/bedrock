@@ -4,17 +4,21 @@ import __cbedrock_ip
 @RAW_staticbuff(bytes:16)
 @RAW_staticbuff_fixedwidthinteger_type<UInt128>(bigEndian:true)
 public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
-	public typealias RAW_fixed_type = RAW_staticbuff_storetype
 	public init?(_ address:String) {
 		var addressv6BE = in6_addr()
 		guard inet_pton(AF_INET6, address, &addressv6BE) == 1 else {
 			return nil
 		}
 		#if os(Linux)
-		self = .init(RAW_staticbuff:&addressv6BE.__in6_u.__u6_addr8)
+		let storage = withUnsafeBytes(of:&addressv6BE.__in6_u.__u6_addr8) {
+			$0.loadUnaligned(as:RAW_fixed_type.self)
+		}
 		#elseif os(macOS)
-		self = .init(RAW_staticbuff:&addressv6BE.__u6_addr.__u6_addr8)
+		let storage = withUnsafeBytes(of:&addressv6BE.__u6_addr.__u6_addr8) {
+			$0.loadUnaligned(as:RAW_fixed_type.self)
+		}
 		#endif
+		self = .init(RAW_staticbuff:storage)
 	}
 
 	public init?(subnetPrefix netmaskPrefix: UInt8) {
@@ -23,7 +27,7 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		}
 
 		// this logic could be done with a lot less code but it would require initializing and writing to bytes multiple times, whereas this way we only write to bytes once*
-		var sixteenBytes:RAW_staticbuff_storetype
+		var sixteenBytes:RAW_fixed_type
 		let fullBytes = Int(netmaskPrefix / 8)
 		switch fullBytes {
 			case 16: sixteenBytes = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
@@ -74,29 +78,24 @@ public struct AddressV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 	}
 
 	public static func & (lhs:AddressV6, rhs:AddressV6) -> AddressV6 {
-		return lhs.RAW_access_staticbuff { lhsPtr -> AddressV6 in
-			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV6 in
-				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
-				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
-				return withUnsafePointer(to:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3], lhsBytes[4] & rhsBytes[4], lhsBytes[5] & rhsBytes[5], lhsBytes[6] & rhsBytes[6], lhsBytes[7] & rhsBytes[7], lhsBytes[8] & rhsBytes[8], lhsBytes[9] & rhsBytes[9], lhsBytes[10] & rhsBytes[10], lhsBytes[11] & rhsBytes[11], lhsBytes[12] & rhsBytes[12], lhsBytes[13] & rhsBytes[13], lhsBytes[14] & rhsBytes[14], lhsBytes[15] & rhsBytes[15])) { (ptr:UnsafePointer<AddressV6.RAW_staticbuff_storetype>) in
-					return AddressV6(RAW_staticbuff:ptr)
+		return lhs.RAW_access_immutable { lhsBytes -> AddressV6 in
+			return rhs.RAW_access_immutable { rhsBytes -> AddressV6 in
+				return withUnsafePointer(to:(lhsBytes[0] & rhsBytes[0], lhsBytes[1] & rhsBytes[1], lhsBytes[2] & rhsBytes[2], lhsBytes[3] & rhsBytes[3], lhsBytes[4] & rhsBytes[4], lhsBytes[5] & rhsBytes[5], lhsBytes[6] & rhsBytes[6], lhsBytes[7] & rhsBytes[7], lhsBytes[8] & rhsBytes[8], lhsBytes[9] & rhsBytes[9], lhsBytes[10] & rhsBytes[10], lhsBytes[11] & rhsBytes[11], lhsBytes[12] & rhsBytes[12], lhsBytes[13] & rhsBytes[13], lhsBytes[14] & rhsBytes[14], lhsBytes[15] & rhsBytes[15])) { (ptr:UnsafePointer<AddressV6.RAW_fixed_type>) in
+					return AddressV6(RAW_staticbuff:ptr.pointee)
 				}
 			}
 		}
 	}
 
 	public static prefix func ~ (_ address:AddressV6) -> AddressV6 {
-		return address.RAW_access_staticbuff { ptr in
-			let bytes = ptr.assumingMemoryBound(to:UInt8.self)
+		return address.RAW_access_immutable { bytes in
 			return AddressV6(RAW_staticbuff:(~bytes[0], ~bytes[1], ~bytes[2], ~bytes[3], ~bytes[4], ~bytes[5], ~bytes[6], ~bytes[7], ~bytes[8], ~bytes[9], ~bytes[10], ~bytes[11], ~bytes[12], ~bytes[13], ~bytes[14], ~bytes[15]))
 		}
 	}
 
 	public static func | (lhs:AddressV6, rhs:AddressV6) -> AddressV6 {
-		return lhs.RAW_access_staticbuff { lhsPtr -> AddressV6 in
-			return rhs.RAW_access_staticbuff { rhsPtr -> AddressV6 in
-				let lhsBytes = lhsPtr.assumingMemoryBound(to:UInt8.self)
-				let rhsBytes = rhsPtr.assumingMemoryBound(to:UInt8.self)
+		return lhs.RAW_access_immutable { lhsBytes -> AddressV6 in
+			return rhs.RAW_access_immutable { rhsBytes -> AddressV6 in
 				return AddressV6(RAW_staticbuff:(lhsBytes[0] | rhsBytes[0], lhsBytes[1] | rhsBytes[1], lhsBytes[2] | rhsBytes[2], lhsBytes[3] | rhsBytes[3], lhsBytes[4] | rhsBytes[4], lhsBytes[5] | rhsBytes[5], lhsBytes[6] | rhsBytes[6], lhsBytes[7] | rhsBytes[7], lhsBytes[8] | rhsBytes[8], lhsBytes[9] | rhsBytes[9], lhsBytes[10] | rhsBytes[10], lhsBytes[11] | rhsBytes[11], lhsBytes[12] | rhsBytes[12], lhsBytes[13] | rhsBytes[13], lhsBytes[14] | rhsBytes[14], lhsBytes[15] | rhsBytes[15]))
 			}
 		}
@@ -126,12 +125,12 @@ extension AddressV6:CustomDebugStringConvertible, Codable {
 
 extension String {
 	public init(_ address:AddressV6) {
-		self = address.RAW_access_staticbuff({
+		self = address.RAW_access_immutable { bytes in
 			var transactable = in6_addr()
 			#if os(Linux)
-			transactable.__in6_u.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
+			transactable.__in6_u.__u6_addr8 = UnsafeRawPointer(bytes.baseAddress!).assumingMemoryBound(to:AddressV6.RAW_fixed_type.self).pointee
 			#elseif os(macOS)
-			transactable.__u6_addr.__u6_addr8 = $0.assumingMemoryBound(to:AddressV6.RAW_staticbuff_storetype.self).pointee
+			transactable.__u6_addr.__u6_addr8 = UnsafeRawPointer(bytes.baseAddress!).assumingMemoryBound(to:AddressV6.RAW_fixed_type.self).pointee
 			#endif
 			let stringBuffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity:Int(INET6_ADDRSTRLEN))
 			defer {
@@ -141,7 +140,7 @@ extension String {
 				fatalError("ipv6 address could not be string encoded")
 			}
 			return String(cString:stringBuffer.baseAddress!)
-		})
+		}
 	}
 }
 
@@ -153,8 +152,8 @@ extension AddressV6 {
 		newIn.sin6_port = port.bigEndian
 		newIn.sin6_flowinfo = 0
 		newIn.sin6_scope_id = 0
-		newIn.sin6_addr = RAW_access_staticbuff {
-			return $0.assumingMemoryBound(to:in6_addr.self).pointee
+		newIn.sin6_addr = RAW_access_immutable { bytes in
+			return UnsafeRawPointer(bytes.baseAddress!).assumingMemoryBound(to:in6_addr.self).pointee
 		}
 		return newIn
 	}
@@ -162,8 +161,6 @@ extension AddressV6 {
 
 @RAW_staticbuff(concat:AddressV6.self, AddressV6.self)
 public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sendable {
-	public typealias RAW_fixed_type = RAW_staticbuff_storetype
-
 	public let lowerBound:AddressV6
 	public let upperBound:AddressV6
 
@@ -183,7 +180,9 @@ public struct RangeV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, Sen
 				}
 			}
 		}
-		self = Self(lower:AddressV6(RAW_staticbuff:&lowerBytes), upper:AddressV6(RAW_staticbuff:&upperBytes))
+		let lowerStorage = lowerBytes.withUnsafeBytes { $0.load(as:AddressV6.RAW_fixed_type.self) }
+		let upperStorage = upperBytes.withUnsafeBytes { $0.load(as:AddressV6.RAW_fixed_type.self) }
+		self = Self(lower:AddressV6(RAW_staticbuff:lowerStorage), upper:AddressV6(RAW_staticbuff:upperStorage))
 	}
 	
 	public init?(_ rangeString:String) {
@@ -215,8 +214,6 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		return "\(String(address))/\(subnetPrefix)"
 	}
 	
-	public typealias RAW_fixed_type = RAW_staticbuff_storetype
-
 	public let address:AddressV6
 	fileprivate let _subnet_prefix:RAW_byte
 	
@@ -267,22 +264,20 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		return range.overlaps(network.range)
 	}
 
-	public static func RAW_compare(lhs_data:UnsafeRawPointer, rhs_data:UnsafeRawPointer) -> Int32 {
+		public static func RAW_compare(lhs_data:UnsafeRawPointer, rhs_data:UnsafeRawPointer) -> Int32 {
 		// mask off any unnecessary bits in the address before comparing
-
 		let boundLHS = lhs_data.assumingMemoryBound(to:Self.self)
 		let boundRHS = rhs_data.assumingMemoryBound(to:Self.self)
 
-		return withUnsafePointer(to:(boundLHS.pointer(to: \.address)!.pointee & boundLHS.pointer(to: \.subnetMask)!.pointee)) { lhsMasked in
-			return withUnsafePointer(to:(boundRHS.pointer(to: \.address)!.pointee & boundRHS.pointer(to: \.subnetMask)!.pointee)) { rhsMasked in
-				
-				// lhs and rhs are now masked to the same subnet, compare them.
-
-				let cmpResult = AddressV6.RAW_compare(lhs_data:lhsMasked, rhs_data:rhsMasked)
+		let lhsMasked = boundLHS.pointee.address & boundLHS.pointee.subnetMask
+		let rhsMasked = boundRHS.pointee.address & boundRHS.pointee.subnetMask
+		return withUnsafePointer(to:lhsMasked) { lhsMaskedPtr in
+			return withUnsafePointer(to:rhsMasked) { rhsMaskedPtr in
+				let cmpResult = AddressV6.RAW_compare(lhs_data:UnsafeRawPointer(lhsMaskedPtr), rhs_data:UnsafeRawPointer(rhsMaskedPtr))
 				switch cmpResult {
 					case 0:
 						// matching masked addresses, compare subnet prefixes
-						return Int32(boundLHS.pointer(to: \.subnetPrefix)!.pointee) - Int32(boundRHS.pointer(to: \.subnetPrefix)!.pointee)
+						return Int32(boundLHS.pointee.subnetPrefix) - Int32(boundRHS.pointee.subnetPrefix)
 					default:
 						return Int32(cmpResult)
 				}
@@ -290,7 +285,6 @@ public struct NetworkV6:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		}
 	}
 }
-
 extension NetworkV6:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
 		return "NetworkV6(\"\(String(address))/\(subnetPrefix)\")"
