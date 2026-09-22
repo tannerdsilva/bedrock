@@ -23,6 +23,8 @@ extension Address:RAW_accessible {
 	}
 }
 
+extension Address:RAW_encodable {}
+
 extension Address:RAW_decodable {
 	public init?(RAW_decode:UnsafeRawBufferPointer) {
 		switch RAW_decode.count {
@@ -159,6 +161,8 @@ extension Network:RAW_accessible {
 		}
 	}
 }
+
+extension Network:RAW_encodable {}
 
 extension Network:RAW_decodable {
 	public init?(RAW_decode:UnsafeRawBufferPointer) {

@@ -221,22 +221,20 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		return range.overlaps(network.range)
 	}
 
-	public static func RAW_compare(lhs_data:UnsafeRawPointer, rhs_data:UnsafeRawPointer) -> Int32 {
+		public static func RAW_compare(lhs_data:UnsafeRawPointer, rhs_data:UnsafeRawPointer) -> Int32 {
 		// mask off any unnecessary bits in the address before comparing
-
 		let boundLHS = lhs_data.assumingMemoryBound(to:Self.self)
 		let boundRHS = rhs_data.assumingMemoryBound(to:Self.self)
 
-		return withUnsafePointer(to:(boundLHS.pointer(to: \.address)!.pointee & boundLHS.pointer(to: \.subnetMask)!.pointee)) { lhsMasked in
-			return withUnsafePointer(to:(boundRHS.pointer(to: \.address)!.pointee & boundRHS.pointer(to: \.subnetMask)!.pointee)) { rhsMasked in
-				
-				// lhs and rhs are now masked to the same subnet, compare them.
-
-				let cmpResult = AddressV4.RAW_compare(lhs_data:lhsMasked, rhs_data:rhsMasked)
+		let lhsMasked = boundLHS.pointee.address & boundLHS.pointee.subnetMask
+		let rhsMasked = boundRHS.pointee.address & boundRHS.pointee.subnetMask
+		return withUnsafePointer(to:lhsMasked) { lhsMaskedPtr in
+			return withUnsafePointer(to:rhsMasked) { rhsMaskedPtr in
+				let cmpResult = AddressV4.RAW_compare(lhs_data:UnsafeRawPointer(lhsMaskedPtr), rhs_data:UnsafeRawPointer(rhsMaskedPtr))
 				switch cmpResult {
 					case 0:
 						// matching masked addresses, compare subnet prefixes
-						return Int32(boundLHS.pointer(to: \.subnetPrefix)!.pointee) - Int32(boundRHS.pointer(to: \.subnetPrefix)!.pointee)
+						return Int32(boundLHS.pointee.subnetPrefix) - Int32(boundRHS.pointee.subnetPrefix)
 					default:
 						return Int32(cmpResult)
 				}
@@ -244,7 +242,6 @@ public struct NetworkV4:RAW_comparable_fixed, Equatable, Comparable, Hashable, S
 		}
 	}
 }
-
 extension NetworkV4:CustomDebugStringConvertible, Codable {
 	public var debugDescription:String {
 		return "NetworkV4(\(String(address))/\(subnetPrefix))"
