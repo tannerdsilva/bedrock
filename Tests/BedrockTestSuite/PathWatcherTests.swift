@@ -251,18 +251,19 @@ extension BedrockTestSuite {
 			let watch = try await watcher.watch(path:Path(fixture.directory), kinds:[.modified, .appeared])
 			#expect(creat(fixture.absentFile, 0o644) >= 0)
 			let event = try await watch.next()
+			// the path of a change inside a directory is always the directory that was monitored.
+			#expect(event.map { String($0.path) } == fixture.directory)
 			#if os(Linux)
-			// linux names the entry that changed, and reports that it appeared.
+			// linux names the entry that changed, and describes that entry rather than the directory: the file that was created is not a directory.
 			#expect(event?.kind.contains(.appeared) == true)
 			#expect(event?.child == "absent.txt")
 			#expect(event?.isDirectory == false)
 			#elseif os(macOS)
-			// macOS reports that the contents of the directory changed, and does not name the entry.
+			// macOS reports that the contents of the directory changed without naming the entry, so the change describes the directory itself.
 			#expect(event?.kind.contains(.modified) == true)
 			#expect(event?.child == nil)
-			#endif
-			#expect(event.map { String($0.path) } == fixture.directory)
 			#expect(event?.isDirectory == true)
+			#endif
 		}
 
 		@Test("pathwatch :: a watch that ends does not disturb its siblings", .timeLimit(.minutes(1)))
