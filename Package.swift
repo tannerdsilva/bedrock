@@ -6,12 +6,13 @@ let package = Package(
 	platforms:[
 		.macOS(.v15)
 	],
-	products:[
+	products: [
 		.library(name:"bedrock", targets:["bedrock"]),
 		.library(name:"bedrock_ip", targets:["bedrock_ip"]),
 		.library(name:"bedrock_future", targets:["bedrock_future"]),
 		.library(name:"bedrock_fifo", targets:["bedrock_fifo"]),
-		.library(name:"bedrock_pthread", targets:["bedrock_pthread"])
+		.library(name:"bedrock_pthread", targets:["bedrock_pthread"]),
+		.library(name:"bedrock_pathwatch", targets:["bedrock_pathwatch"])
 	],
 	dependencies:[
 		.package(url:"https://github.com/tannerdsilva/rawdog.git", "22.0.0"..<"23.0.0"),
@@ -20,14 +21,14 @@ let package = Package(
 	targets:[
 		.target(
 			name:"bedrock",
-			dependencies:[
+			dependencies: [
 				.product(name:"RAW", package:"rawdog"),
 				.product(name:"Logging", package:"swift-log"),
 			]
 		),
 		.target(
 			name:"bedrock_ip",
-			dependencies:[
+			dependencies: [
 				.product(name:"RAW", package:"rawdog"),
 				"__cbedrock_ip"
 			]
@@ -37,12 +38,12 @@ let package = Package(
 		),
 		.target(
 			name:"__cbedrock_ip",
-			dependencies:[],
+			dependencies: [],
 			publicHeadersPath:"."
 		),
 		.target(
 			name:"bedrock_nasyncstream",
-			dependencies:[
+			dependencies: [
 				"__cbedrock_fifo",
 				"__cbedrock_identified_list",
 				"bedrock_fifo"
@@ -78,6 +79,16 @@ let package = Package(
 			]
 		),
 		.target(
+			name:"bedrock_pathwatch",
+			dependencies:[
+				"bedrock",
+				"bedrock_fifo",
+				"bedrock_future",
+				"bedrock_pthread",
+				"__cbedrock_pathwatch"
+			]
+		),
+		.target(
 			name:"__cbedrock_types",
 			publicHeadersPath:"."
 		),
@@ -110,6 +121,13 @@ let package = Package(
 			],
 			publicHeadersPath:"."
 		),
+		.target(
+			name:"__cbedrock_pathwatch",
+			dependencies:[
+				"__cbedrock_types"
+			],
+			publicHeadersPath:"."
+		),
 		.testTarget(
 			name: "BedrockTestSuite",
 			dependencies:[
@@ -118,10 +136,12 @@ let package = Package(
 				"bedrock_future",
 				"bedrock_contained",
 				"bedrock_pthread",
+				"bedrock_pathwatch",
 				"__cbedrock_identified_list",
 				"__cbedrock_future",
 				"__cbedrock_threads",
-				"__cbedrock_fifo"
+				"__cbedrock_fifo",
+				"__cbedrock_pathwatch"
 			]
 		)
 	]
