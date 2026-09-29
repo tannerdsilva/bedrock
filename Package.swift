@@ -46,7 +46,8 @@ let package = Package(
 			dependencies: [
 				"__cbedrock_fifo",
 				"__cbedrock_identified_list",
-				"bedrock_fifo"
+				"bedrock_fifo",
+				"bedrock_identified_list"
 			]
 		),
 		.target(
