@@ -83,9 +83,15 @@ extension BedrockTestSuite {
 
 		// MARK: helpers
 
-		/// opens a directory and counts the entries in it, which is how the leak test below observes the descriptors that the watcher holds.
+		/// opens the directory that describes the descriptors of this process and counts the entries in it, which is how the leak test below observes the descriptors that a watcher holds.
+		/// - NOTE: linux exposes the descriptors of a running process through `procfs`, and `/dev/fd` is only a convention that a minimal container is not required to provide, so the linux path is the procfs one.
 		private static func openDescriptorCount() -> Int {
-			guard let directory = opendir("/dev/fd") else {
+			#if os(Linux)
+			let descriptorDirectory = "/proc/self/fd"
+			#elseif os(macOS)
+			let descriptorDirectory = "/dev/fd"
+			#endif
+			guard let directory = opendir(descriptorDirectory) else {
 				return -1
 			}
 			var count = 0
