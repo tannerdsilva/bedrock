@@ -235,7 +235,7 @@ internal final class MacOSPathWatchEngine:PathWatchEngine, @unchecked Sendable {
 		_ = close(descriptor)
 		counter.decrement()
 		registration.channel.yield(fileEvent)
-		registration.channel.finish(throwing:PathWatcherError.watchEnded(registration.path, reason))
+		try? registration.channel.finish(withError:PathWatcherError.watchEnded(registration.path, reason))
 	}
 
 	/// translates a system error into the error that a caller sees.

@@ -233,14 +233,14 @@ internal final class LinuxPathWatchEngine:PathWatchEngine, @unchecked Sendable {
 		identifiers.removeValue(forKey:registration.identifier)
 		counter.decrement()
 		registration.channel.yield(fileEvent)
-		registration.channel.finish(throwing:PathWatcherError.watchEnded(registration.path, reason))
+		try? registration.channel.finish(withError:PathWatcherError.watchEnded(registration.path, reason))
 	}
 
 	/// ends every armed registration, which is how this engine responds to a stream that it can no longer report faithfully.
 	private func terminateAll(reason:PathWatcherError.Reason) {
 		let terminated = registrations.count
 		for (watchDescriptor, registration) in registrations {
-			registration.channel.finish(throwing:PathWatcherError.watchEnded(registration.path, reason))
+			try? registration.channel.finish(withError:PathWatcherError.watchEnded(registration.path, reason))
 			_ = __cbedrock_pathwatch_inotify_rm(primitive, watchDescriptor)
 		}
 		registrations.removeAll()

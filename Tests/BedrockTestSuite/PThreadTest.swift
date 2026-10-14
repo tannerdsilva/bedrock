@@ -71,7 +71,7 @@ fileprivate struct CancelTestWorker:PThreadWork {
 	
 	// the pthread work that needs to be executed
 	fileprivate mutating func pthreadWork() throws -> ReturnType {
-		let testThing = MyTest(freeConfirm)
+		_ = MyTest(freeConfirm)
 		
 		try lf.setSuccess(())
 	}
@@ -102,15 +102,15 @@ extension BedrockTestSuite {
 					let cancelFuture = Future<Void, Never>()
 					
 					// launch the pthread that will be subject to cancellation testing.
-					let runTask = try await bedrock_pthread.launch { [lf = launchFuture, cf = cancelFuture] in
+					let runTask = try bedrock_pthread.launch { [lf = launchFuture, cf = cancelFuture] in
 						
 						// declare a memory artifact within the pthread.
 						_ = MyTest(freeConfirm)
 						
 						try lf.setSuccess(())
 						
-						// wait for the cancelation to be set.
-						cf.blockingResult()!.get()
+						// wait for the cancelation to be set. this parks the pthread until the future below is set.
+						_ = cf.waitSynchronously().wait()
 						
 						// test for cancellation. this would usually be the end of the pthread.
 						pthread_testcancel()

@@ -75,7 +75,7 @@ public final class PathWatcher:Sendable {
 			WakeupPipe.closeHandles(channel)
 			throw error
 		}
-		let requestStream = FIFO<PathWatchRequest, Never>()
+		let requestStream = try! FIFO<PathWatchRequest, Never>()
 		let registrationCounter = ActiveWatchCounter()
 		let setup = PathWatchSetup(primitive:kernelPrimitive, wakeup:channel, requests:requestStream, counter:registrationCounter)
 		let launchedThread:Running<PlatformEngine>
@@ -99,11 +99,11 @@ public final class PathWatcher:Sendable {
 	/// - returns: a watch that is the exclusive consumer of the events that this registration produces.
 	/// - throws: a ``PathWatcherError`` if the path cannot be watched. a path that resolves to an object which another watch of the same watcher already describes is refused with ``PathWatcherError/pathAlreadyWatched(_:)`` on linux, where the kernel identifies a watch by the object rather than by the path. macOS has no such restriction.
 	public func watch(path:consuming Path, kinds:FileEventKind) async throws(PathWatcherError) -> Watch {
-		let channel = FIFO<FileEvent, PathWatcherError>()
+		let channel = try! FIFO<FileEvent, PathWatcherError>()
 		let acknowledgement = Future<UInt64, PathWatcherError>()
 		requests.yield(.arm(path:path, kinds:kinds, channel:channel, acknowledgement:acknowledgement))
 		wakeup.signal()
-		let outcome = await acknowledgement.result(throwingOnCurrentTaskCancellation:Never.self)
+		let outcome = await acknowledgement.result()
 		guard let outcome else {
 			// an acknowledgement is only cancelled when the watcher that created it is being torn down, which cannot happen while this call holds a reference to that watcher.
 			throw PathWatcherError.watchEnded(path, .kernelDropped)

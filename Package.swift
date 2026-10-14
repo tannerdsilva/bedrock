@@ -34,49 +34,31 @@ let package = Package(
 			]
 		),
 		.target(
-			name:"bedrock_contained"
-		),
-		.target(
 			name:"__cbedrock_ip",
 			dependencies: [],
 			publicHeadersPath:"."
 		),
 		.target(
-			name:"bedrock_nasyncstream",
-			dependencies: [
-				"__cbedrock_fifo",
-				"__cbedrock_identified_list",
-				"bedrock_fifo",
-				"bedrock_identified_list"
-			]
-		),
-		.target(
 			name:"bedrock_fifo",
 			dependencies:[
-				"__cbedrock_fifo",
-				"bedrock_contained"
+				"bedrock_oneshot_latch"
 			]
 		),
 		.target(
-			name:"bedrock_identified_list",
-			dependencies:[
-				"__cbedrock_identified_list",
-				"bedrock_contained"
-			]
+			name:"bedrock_oneshot_latch",
+			dependencies:[]
 		),
 		.target(
 			name:"bedrock_future",
 			dependencies:[
-				"__cbedrock_future",
-				"bedrock_contained"
+				"bedrock_oneshot_latch"
 			]
 		),
 		.target(
 			name:"bedrock_pthread",
 			dependencies:[
 				"bedrock_future",
-				"__cbedrock_threads",
-				"bedrock_contained"
+				"__cbedrock_threads"
 			]
 		),
 		.target(
@@ -94,29 +76,7 @@ let package = Package(
 			publicHeadersPath:"."
 		),
 		.target(
-			name:"__cbedrock_identified_list",
-			dependencies:[
-				"__cbedrock_types"
-			],
-			publicHeadersPath:"."
-		),
-		.target(
-			name:"__cbedrock_future",
-			dependencies:[
-				"__cbedrock_types",
-				"__cbedrock_identified_list"
-			],
-			publicHeadersPath:"."
-		),
-		.target(
 			name:"__cbedrock_threads",
-			dependencies:[
-				"__cbedrock_types"
-			],
-			publicHeadersPath:"."
-		),
-		.target(
-			name:"__cbedrock_fifo",
 			dependencies:[
 				"__cbedrock_types"
 			],
@@ -134,14 +94,12 @@ let package = Package(
 			dependencies:[
 				"bedrock",
 				"bedrock_ip",
+				"bedrock_fifo",
 				"bedrock_future",
-				"bedrock_contained",
+				"bedrock_oneshot_latch",
 				"bedrock_pthread",
 				"bedrock_pathwatch",
-				"__cbedrock_identified_list",
-				"__cbedrock_future",
 				"__cbedrock_threads",
-				"__cbedrock_fifo",
 				"__cbedrock_pathwatch"
 			]
 		)
